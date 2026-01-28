@@ -6,6 +6,7 @@ import MinimalTheme from "@/components/storefront/themes/MinimalTheme";
 import BoldTheme from "@/components/storefront/themes/BoldTheme";
 import ElegantTheme from "@/components/storefront/themes/ElegantTheme";
 import ModernTheme from "@/components/storefront/themes/ModernTheme";
+import { getThemeLayout, type ThemeId } from "@/components/storefront/themes";
 
 interface StoreData {
   id: string;
@@ -96,10 +97,11 @@ export default function Storefront() {
     );
   }
 
-  // Render the appropriate theme
+  // Get the layout type for the theme
+  const layout = getThemeLayout(store.theme as ThemeId);
   const themeProps = { store, products };
 
-  switch (store.theme) {
+  switch (layout) {
     case "bold":
       return <BoldTheme {...themeProps} />;
     case "elegant":
