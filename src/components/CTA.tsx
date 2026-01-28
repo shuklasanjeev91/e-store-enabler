@@ -1,8 +1,11 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
+import { useAuthRedirect } from "@/hooks/useAuthRedirect";
 
 export const CTA = () => {
+  const { handleCTAClick } = useAuthRedirect();
+
   return (
     <section className="relative bg-background py-24 md:py-32">
       <div className="container px-4">
@@ -26,7 +29,7 @@ export const CTA = () => {
               Start your free trial today — no credit card required.
             </p>
             <div className="flex flex-col justify-center gap-4 sm:flex-row">
-              <Button variant="accent" size="xl" className="group">
+              <Button variant="accent" size="xl" className="group" onClick={handleCTAClick}>
                 Start your free trial
                 <ArrowRight className="transition-transform group-hover:translate-x-1" />
               </Button>

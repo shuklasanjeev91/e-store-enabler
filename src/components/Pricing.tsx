@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
+import { useAuthRedirect } from "@/hooks/useAuthRedirect";
 
 const plans = [
   {
@@ -59,6 +60,8 @@ const plans = [
 ];
 
 export const Pricing = () => {
+  const { handleCTAClick } = useAuthRedirect();
+
   return (
     <section id="pricing" className="relative bg-background py-24 md:py-32">
       <div className="container px-4">
@@ -130,6 +133,7 @@ export const Pricing = () => {
                 variant={plan.variant}
                 size="lg"
                 className={plan.popular ? "shadow-glow" : ""}
+                onClick={plan.name === "Scale" ? undefined : handleCTAClick}
               >
                 {plan.cta}
               </Button>

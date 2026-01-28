@@ -1,8 +1,11 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Play } from "lucide-react";
+import { useAuthRedirect } from "@/hooks/useAuthRedirect";
 
 export const Hero = () => {
+  const { handleCTAClick } = useAuthRedirect();
+
   return (
     <section className="section-dark relative min-h-screen overflow-hidden">
       {/* Animated background elements */}
@@ -65,7 +68,7 @@ export const Hero = () => {
           transition={{ duration: 0.6, delay: 0.3 }}
           className="mb-16 flex flex-col gap-4 sm:flex-row"
         >
-          <Button variant="hero" size="xl" className="group">
+          <Button variant="hero" size="xl" className="group" onClick={handleCTAClick}>
             Start free trial
             <ArrowRight className="transition-transform group-hover:translate-x-1" />
           </Button>

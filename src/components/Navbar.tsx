@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
+import { useAuthRedirect } from "@/hooks/useAuthRedirect";
 
 const navLinks = [
   { label: "Features", href: "#features" },
@@ -12,6 +13,7 @@ const navLinks = [
 
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const { handleCTAClick, isAuthenticated } = useAuthRedirect();
 
   return (
     <motion.nav
@@ -45,11 +47,15 @@ export const Navbar = () => {
 
           {/* Desktop CTA */}
           <div className="hidden items-center gap-3 md:flex">
-            <Button variant="ghost" className="text-text-on-dark hover:bg-white/10">
-              Log in
+            <Button 
+              variant="ghost" 
+              className="text-text-on-dark hover:bg-white/10"
+              onClick={handleCTAClick}
+            >
+              {isAuthenticated ? "Dashboard" : "Log in"}
             </Button>
-            <Button variant="hero" size="sm">
-              Get Started
+            <Button variant="hero" size="sm" onClick={handleCTAClick}>
+              {isAuthenticated ? "Go to Dashboard" : "Get Started"}
             </Button>
           </div>
 
@@ -81,10 +87,25 @@ export const Navbar = () => {
                 </a>
               ))}
               <hr className="border-white/10" />
-              <Button variant="ghost" className="justify-start text-text-on-dark hover:bg-white/10">
-                Log in
+              <Button 
+                variant="ghost" 
+                className="justify-start text-text-on-dark hover:bg-white/10"
+                onClick={() => {
+                  setIsOpen(false);
+                  handleCTAClick();
+                }}
+              >
+                {isAuthenticated ? "Dashboard" : "Log in"}
               </Button>
-              <Button variant="hero">Get Started</Button>
+              <Button 
+                variant="hero"
+                onClick={() => {
+                  setIsOpen(false);
+                  handleCTAClick();
+                }}
+              >
+                {isAuthenticated ? "Go to Dashboard" : "Get Started"}
+              </Button>
             </div>
           </motion.div>
         )}
