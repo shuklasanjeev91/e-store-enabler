@@ -47,16 +47,24 @@ export const Navbar = () => {
 
           {/* Desktop CTA */}
           <div className="hidden items-center gap-3 md:flex">
-            <Button 
-              variant="ghost" 
-              className="text-text-on-dark hover:bg-white/10"
-              onClick={handleCTAClick}
-            >
-              {isAuthenticated ? (hasStore ? "Dashboard" : "Setup Store") : "Log in"}
-            </Button>
-            <Button variant="hero" size="sm" onClick={handleCTAClick}>
-              {isAuthenticated ? (hasStore ? "Go to Dashboard" : "Complete Setup") : "Get Started"}
-            </Button>
+            {isAuthenticated && !hasStore ? (
+              <Button variant="hero" size="sm" onClick={handleCTAClick}>
+                Setup Store
+              </Button>
+            ) : (
+              <>
+                <Button 
+                  variant="ghost" 
+                  className="text-text-on-dark hover:bg-white/10"
+                  onClick={handleCTAClick}
+                >
+                  {isAuthenticated ? "Dashboard" : "Log in"}
+                </Button>
+                <Button variant="hero" size="sm" onClick={handleCTAClick}>
+                  {isAuthenticated ? "Go to Dashboard" : "Get Started"}
+                </Button>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -87,25 +95,39 @@ export const Navbar = () => {
                 </a>
               ))}
               <hr className="border-white/10" />
-              <Button 
-                variant="ghost" 
-                className="justify-start text-text-on-dark hover:bg-white/10"
-                onClick={() => {
-                  setIsOpen(false);
-                  handleCTAClick();
-                }}
-              >
-                {isAuthenticated ? (hasStore ? "Dashboard" : "Setup Store") : "Log in"}
-              </Button>
-              <Button 
-                variant="hero"
-                onClick={() => {
-                  setIsOpen(false);
-                  handleCTAClick();
-                }}
-              >
-                {isAuthenticated ? (hasStore ? "Go to Dashboard" : "Complete Setup") : "Get Started"}
-              </Button>
+              {isAuthenticated && !hasStore ? (
+                <Button 
+                  variant="hero"
+                  onClick={() => {
+                    setIsOpen(false);
+                    handleCTAClick();
+                  }}
+                >
+                  Setup Store
+                </Button>
+              ) : (
+                <>
+                  <Button 
+                    variant="ghost" 
+                    className="justify-start text-text-on-dark hover:bg-white/10"
+                    onClick={() => {
+                      setIsOpen(false);
+                      handleCTAClick();
+                    }}
+                  >
+                    {isAuthenticated ? "Dashboard" : "Log in"}
+                  </Button>
+                  <Button 
+                    variant="hero"
+                    onClick={() => {
+                      setIsOpen(false);
+                      handleCTAClick();
+                    }}
+                  >
+                    {isAuthenticated ? "Go to Dashboard" : "Get Started"}
+                  </Button>
+                </>
+              )}
             </div>
           </motion.div>
         )}
