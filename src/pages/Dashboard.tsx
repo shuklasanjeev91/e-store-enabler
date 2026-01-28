@@ -5,9 +5,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Globe, GlobeLock } from "lucide-react";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import SetupWizard from "@/components/dashboard/SetupWizard";
+import ThemeSelector from "@/components/dashboard/ThemeSelector";
 import { formatCurrency } from "@/lib/currency";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
+import type { ThemeId } from "@/components/storefront/themes";
 
 interface StoreData {
   id: string;
@@ -15,6 +17,7 @@ interface StoreData {
   slug: string;
   status: string;
   currency: string;
+  theme: string;
   created_at: string;
 }
 
@@ -179,6 +182,11 @@ export default function Dashboard() {
               </div>
             </div>
             <div className="flex items-center gap-3">
+              <ThemeSelector 
+                storeId={store.id} 
+                currentTheme={store.theme} 
+                onThemeChange={(theme) => setStore({ ...store, theme })}
+              />
               <span className={`text-sm font-medium ${isPublished ? "text-emerald-500" : "text-muted-foreground"}`}>
                 {isPublished ? "Published" : "Draft"}
               </span>

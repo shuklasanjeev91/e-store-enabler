@@ -14,8 +14,10 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, Check } from "lucide-react";
 import { z } from "zod";
+import { THEMES, type ThemeId } from "@/components/storefront/themes";
+import { cn } from "@/lib/utils";
 
 const countries = [
   { code: "US", name: "United States", currency: "USD", symbol: "$" },
@@ -39,6 +41,7 @@ const storeNameSchema = z
 export default function Onboarding() {
   const [storeName, setStoreName] = useState("");
   const [country, setCountry] = useState("US");
+  const [selectedTheme, setSelectedTheme] = useState<ThemeId>("minimal");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCheckingStores, setIsCheckingStores] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +51,6 @@ export default function Onboarding() {
 
   const selectedCountry = countries.find((c) => c.code === country);
 
-  // Check if user already has stores
   useEffect(() => {
     const checkStores = async () => {
       if (!user) return;
@@ -61,7 +63,6 @@ export default function Onboarding() {
 
         if (error) throw error;
 
-        // If user already has stores, redirect to dashboard
         if (data && data.length > 0) {
           navigate("/dashboard");
         }
@@ -77,7 +78,6 @@ export default function Onboarding() {
     }
   }, [user, isLoading, navigate]);
 
-  // Redirect to auth if not logged in
   useEffect(() => {
     if (!isLoading && !user) {
       navigate("/auth");
@@ -117,6 +117,7 @@ export default function Onboarding() {
         slug,
         currency: selectedCountry?.currency || "USD",
         status: "draft",
+        theme: selectedTheme,
       });
 
       if (insertError) {
@@ -166,7 +167,7 @@ export default function Onboarding() {
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="relative z-10 w-full max-w-md rounded-2xl bg-background p-8 shadow-2xl"
+        className="relative z-10 w-full max-w-2xl rounded-2xl bg-background p-8 shadow-2xl"
       >
         {/* Logo */}
         <div className="mb-8 flex items-center gap-3">
@@ -178,51 +179,88 @@ export default function Onboarding() {
 
         {/* Header */}
         <h1 className="mb-8 font-display text-2xl font-bold text-foreground">
-          Enter business details
+          Create your store
         </h1>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Country/Currency Select */}
-          <div className="space-y-2">
-            <Label htmlFor="country">
-              Country <span className="text-destructive">*</span>
-            </Label>
-            <Select value={country} onValueChange={setCountry}>
-              <SelectTrigger className="h-12 bg-background">
-                <SelectValue placeholder="Select country" />
-              </SelectTrigger>
-              <SelectContent className="bg-background border shadow-lg z-50">
-                {countries.map((c) => (
-                  <SelectItem 
-                    key={c.code} 
-                    value={c.code}
-                    className="cursor-pointer"
-                  >
-                    {c.name} ({c.symbol})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="grid gap-6 sm:grid-cols-2">
+            {/* Country/Currency Select */}
+            <div className="space-y-2">
+              <Label htmlFor="country">
+                Country <span className="text-destructive">*</span>
+              </Label>
+              <Select value={country} onValueChange={setCountry}>
+                <SelectTrigger className="h-12 bg-background">
+                  <SelectValue placeholder="Select country" />
+                </SelectTrigger>
+                <SelectContent className="bg-background border shadow-lg z-50">
+                  {countries.map((c) => (
+                    <SelectItem 
+                      key={c.code} 
+                      value={c.code}
+                      className="cursor-pointer"
+                    >
+                      {c.name} ({c.symbol})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Business Name Input */}
+            <div className="space-y-2">
+              <Label htmlFor="storeName">
+                Business Name <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="storeName"
+                type="text"
+                value={storeName}
+                onChange={(e) => {
+                  setStoreName(e.target.value);
+                  setError(null);
+                }}
+                placeholder="Enter business name"
+                className={`h-12 ${error ? "border-destructive" : ""}`}
+                maxLength={50}
+              />
+              {error && <p className="text-sm text-destructive">{error}</p>}
+            </div>
           </div>
 
-          {/* Business Name Input */}
-          <div className="space-y-2">
-            <Label htmlFor="storeName">
-              Business Name <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="storeName"
-              type="text"
-              value={storeName}
-              onChange={(e) => {
-                setStoreName(e.target.value);
-                setError(null);
-              }}
-              placeholder="Enter business name"
-              className={`h-12 ${error ? "border-destructive" : ""}`}
-              maxLength={50}
-            />
-            {error && <p className="text-sm text-destructive">{error}</p>}
+          {/* Theme Selection */}
+          <div className="space-y-3">
+            <Label>Choose a theme</Label>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {THEMES.map((theme) => (
+                <button
+                  key={theme.id}
+                  type="button"
+                  onClick={() => setSelectedTheme(theme.id)}
+                  className={cn(
+                    "relative flex items-start gap-3 rounded-xl border-2 p-4 text-left transition-all",
+                    selectedTheme === theme.id
+                      ? "border-primary bg-primary/5"
+                      : "border-muted hover:border-muted-foreground/30"
+                  )}
+                >
+                  {/* Theme preview swatch */}
+                  <div className={cn(
+                    "h-10 w-10 shrink-0 rounded-lg border",
+                    theme.preview
+                  )} />
+                  <div className="flex-1">
+                    <p className="font-medium">{theme.name}</p>
+                    <p className="text-sm text-muted-foreground">{theme.description}</p>
+                  </div>
+                  {selectedTheme === theme.id && (
+                    <div className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full bg-primary">
+                      <Check className="h-3 w-3 text-primary-foreground" />
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Submit Button */}
@@ -237,7 +275,7 @@ export default function Onboarding() {
                 Creating...
               </>
             ) : (
-              "Finish"
+              "Create Store"
             )}
           </Button>
         </form>
