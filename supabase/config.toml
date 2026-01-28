@@ -1,1 +1,4 @@
 project_id = "lgsauwaitgamdpunclla"
+
+[functions.customer-auth]
+verify_jwt = false
