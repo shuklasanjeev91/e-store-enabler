@@ -199,6 +199,7 @@ export type Database = {
           name: string
           slug: string
           status: string
+          theme: string
           updated_at: string
           user_id: string
         }
@@ -211,6 +212,7 @@ export type Database = {
           name: string
           slug: string
           status?: string
+          theme?: string
           updated_at?: string
           user_id: string
         }
@@ -223,6 +225,7 @@ export type Database = {
           name?: string
           slug?: string
           status?: string
+          theme?: string
           updated_at?: string
           user_id?: string
         }
