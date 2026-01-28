@@ -12,6 +12,16 @@ import {
   BookOpen,
   Baby,
   Leaf,
+  Gem,
+  Sofa,
+  Sparkles,
+  Dumbbell,
+  PawPrint,
+  Car,
+  HeartPulse,
+  Palette,
+  Flower,
+  Plane,
 } from "lucide-react";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import { Button } from "@/components/ui/button";
@@ -25,6 +35,7 @@ import {
 } from "@/components/storefront/themes";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 interface StoreData {
   id: string;
@@ -42,6 +53,16 @@ const categoryIcons: Record<CategoryId, React.ElementType> = {
   books: BookOpen,
   kids: Baby,
   ayurvedic: Leaf,
+  jewelry: Gem,
+  home: Sofa,
+  beauty: Sparkles,
+  sports: Dumbbell,
+  pets: PawPrint,
+  automotive: Car,
+  health: HeartPulse,
+  art: Palette,
+  garden: Flower,
+  travel: Plane,
 };
 
 export default function Appearance() {
@@ -152,22 +173,25 @@ export default function Appearance() {
             onValueChange={(v) => setActiveCategory(v as CategoryId)}
             className="w-full"
           >
-            <TabsList className="mb-6 flex h-auto flex-wrap gap-2 bg-transparent p-0">
-              {THEME_CATEGORIES.map((category) => {
-                const Icon = categoryIcons[category.id];
-                return (
-                  <TabsTrigger
-                    key={category.id}
-                    value={category.id}
-                    className="flex items-center gap-2 rounded-full border bg-background px-4 py-2 data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                  >
-                    <Icon className="h-4 w-4" />
-                    <span className="hidden sm:inline">{category.name}</span>
-                    <span className="sm:hidden">{category.name.split(" ")[0]}</span>
-                  </TabsTrigger>
-                );
-              })}
-            </TabsList>
+            <ScrollArea className="w-full whitespace-nowrap">
+              <TabsList className="mb-6 inline-flex h-auto gap-2 bg-transparent p-0">
+                {THEME_CATEGORIES.map((category) => {
+                  const Icon = categoryIcons[category.id];
+                  return (
+                    <TabsTrigger
+                      key={category.id}
+                      value={category.id}
+                      className="flex items-center gap-2 rounded-full border bg-background px-4 py-2 data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                    >
+                      <Icon className="h-4 w-4" />
+                      <span className="hidden sm:inline">{category.name}</span>
+                      <span className="sm:hidden">{category.name.split(" ")[0]}</span>
+                    </TabsTrigger>
+                  );
+                })}
+              </TabsList>
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
 
             {THEME_CATEGORIES.map((category) => (
               <TabsContent key={category.id} value={category.id} className="mt-0">
