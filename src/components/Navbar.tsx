@@ -13,7 +13,7 @@ const navLinks = [
 
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const { handleCTAClick, isAuthenticated } = useAuthRedirect();
+  const { handleCTAClick, isAuthenticated, hasStore } = useAuthRedirect();
 
   return (
     <motion.nav
@@ -52,10 +52,10 @@ export const Navbar = () => {
               className="text-text-on-dark hover:bg-white/10"
               onClick={handleCTAClick}
             >
-              {isAuthenticated ? "Dashboard" : "Log in"}
+              {isAuthenticated ? (hasStore ? "Dashboard" : "Setup Store") : "Log in"}
             </Button>
             <Button variant="hero" size="sm" onClick={handleCTAClick}>
-              {isAuthenticated ? "Go to Dashboard" : "Get Started"}
+              {isAuthenticated ? (hasStore ? "Go to Dashboard" : "Complete Setup") : "Get Started"}
             </Button>
           </div>
 
@@ -95,7 +95,7 @@ export const Navbar = () => {
                   handleCTAClick();
                 }}
               >
-                {isAuthenticated ? "Dashboard" : "Log in"}
+                {isAuthenticated ? (hasStore ? "Dashboard" : "Setup Store") : "Log in"}
               </Button>
               <Button 
                 variant="hero"
@@ -104,7 +104,7 @@ export const Navbar = () => {
                   handleCTAClick();
                 }}
               >
-                {isAuthenticated ? "Go to Dashboard" : "Get Started"}
+                {isAuthenticated ? (hasStore ? "Go to Dashboard" : "Complete Setup") : "Get Started"}
               </Button>
             </div>
           </motion.div>
