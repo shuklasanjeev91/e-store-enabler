@@ -2,10 +2,12 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2 } from "lucide-react";
+import { Loader2, Globe, GlobeLock } from "lucide-react";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import SetupWizard from "@/components/dashboard/SetupWizard";
 import { formatCurrency } from "@/lib/currency";
+import { Switch } from "@/components/ui/switch";
+import { toast } from "@/hooks/use-toast";
 
 interface StoreData {
   id: string;
@@ -16,16 +18,13 @@ interface StoreData {
   created_at: string;
 }
 
-interface ProductCount {
-  count: number;
-}
-
 export default function Dashboard() {
   const { user, isLoading, signOut } = useAuth();
   const navigate = useNavigate();
   const [store, setStore] = useState<StoreData | null>(null);
   const [productCount, setProductCount] = useState(0);
   const [isLoadingStore, setIsLoadingStore] = useState(true);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -41,7 +40,6 @@ export default function Dashboard() {
 
   const fetchStore = async () => {
     try {
-      // Fetch the first store for this user
       const { data: storeData, error: storeError } = await supabase
         .from("stores")
         .select("*")
@@ -58,7 +56,6 @@ export default function Dashboard() {
 
       setStore(storeData);
 
-      // Fetch product count
       const { count, error: countError } = await supabase
         .from("products")
         .select("*", { count: "exact", head: true })
@@ -74,6 +71,40 @@ export default function Dashboard() {
     }
   };
 
+  const toggleStoreStatus = async () => {
+    if (!store) return;
+    
+    setIsUpdatingStatus(true);
+    const newStatus = store.status === "published" ? "draft" : "published";
+    
+    try {
+      const { error } = await supabase
+        .from("stores")
+        .update({ status: newStatus })
+        .eq("id", store.id);
+
+      if (error) throw error;
+
+      setStore({ ...store, status: newStatus });
+      
+      toast({
+        title: newStatus === "published" ? "Store Published!" : "Store Unpublished",
+        description: newStatus === "published" 
+          ? "Your store is now live and visible to everyone."
+          : "Your store is now hidden from public view.",
+      });
+    } catch (error) {
+      console.error("Error updating store status:", error);
+      toast({
+        title: "Failed to update status",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
   if (isLoading || isLoadingStore) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-muted/30">
@@ -85,6 +116,8 @@ export default function Dashboard() {
   if (!store) {
     return null;
   }
+
+  const isPublished = store.status === "published";
 
   const setupSteps = [
     {
@@ -126,6 +159,37 @@ export default function Dashboard() {
       {/* Main content */}
       <main className="lg:pl-56 pt-14 lg:pt-0">
         <div className="p-6 lg:p-8">
+          {/* Store Status Toggle */}
+          <div className="mb-6 flex items-center justify-between rounded-xl border bg-background p-4">
+            <div className="flex items-center gap-3">
+              {isPublished ? (
+                <Globe className="h-5 w-5 text-emerald-500" />
+              ) : (
+                <GlobeLock className="h-5 w-5 text-muted-foreground" />
+              )}
+              <div>
+                <p className="font-medium">
+                  {isPublished ? "Store is Live" : "Store is Hidden"}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {isPublished
+                    ? "Your store is visible to everyone"
+                    : "Only you can see your store"}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className={`text-sm font-medium ${isPublished ? "text-emerald-500" : "text-muted-foreground"}`}>
+                {isPublished ? "Published" : "Draft"}
+              </span>
+              <Switch
+                checked={isPublished}
+                onCheckedChange={toggleStoreStatus}
+                disabled={isUpdatingStatus}
+              />
+            </div>
+          </div>
+
           <SetupWizard steps={setupSteps} storeName={store.name} />
 
           {/* Quick stats - using store currency */}
