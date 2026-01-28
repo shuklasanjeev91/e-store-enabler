@@ -109,7 +109,7 @@ export default function Onboarding() {
     try {
       if (!user) throw new Error("Not authenticated");
 
-      const slug = generateSlug(storeName) + "-" + Date.now().toString(36);
+      const slug = generateSlug(storeName);
 
       const { error: insertError } = await supabase.from("stores").insert({
         user_id: user.id,
