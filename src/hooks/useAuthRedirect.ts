@@ -4,20 +4,25 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
 export const useAuthRedirect = () => {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const [hasStore, setHasStore] = useState<boolean | null>(null);
-  const [isCheckingStore, setIsCheckingStore] = useState(false);
+  const [storeStatus, setStoreStatus] = useState<{
+    checked: boolean;
+    hasStore: boolean;
+  }>({ checked: false, hasStore: false });
 
   // Check if user has a store
   useEffect(() => {
+    let isMounted = true;
+
     const checkStore = async () => {
       if (!user) {
-        setHasStore(null);
+        if (isMounted) {
+          setStoreStatus({ checked: true, hasStore: false });
+        }
         return;
       }
 
-      setIsCheckingStore(true);
       try {
         const { data, error } = await supabase
           .from("stores")
@@ -25,39 +30,46 @@ export const useAuthRedirect = () => {
           .limit(1);
 
         if (error) throw error;
-        setHasStore(data && data.length > 0);
+        
+        if (isMounted) {
+          setStoreStatus({ 
+            checked: true, 
+            hasStore: !!(data && data.length > 0) 
+          });
+        }
       } catch (err) {
         console.error("Error checking store:", err);
-        setHasStore(false);
-      } finally {
-        setIsCheckingStore(false);
+        if (isMounted) {
+          setStoreStatus({ checked: true, hasStore: false });
+        }
       }
     };
 
-    if (user && !isLoading) {
+    if (!authLoading) {
       checkStore();
     }
-  }, [user, isLoading]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user, authLoading]);
 
   const handleCTAClick = useCallback(() => {
-    if (isLoading || isCheckingStore) return;
+    if (authLoading || !storeStatus.checked) return;
     
     if (user) {
-      // If user has a store, go to dashboard; otherwise go to onboarding
-      if (hasStore) {
-        navigate("/dashboard");
-      } else {
-        navigate("/onboarding");
-      }
+      navigate(storeStatus.hasStore ? "/dashboard" : "/onboarding");
     } else {
       navigate("/auth");
     }
-  }, [user, isLoading, isCheckingStore, hasStore, navigate]);
+  }, [user, authLoading, storeStatus, navigate]);
+
+  const isLoading = authLoading || !storeStatus.checked;
 
   return { 
     handleCTAClick, 
     isAuthenticated: !!user, 
-    hasStore,
-    isLoading: isLoading || isCheckingStore 
+    hasStore: storeStatus.hasStore,
+    isLoading
   };
 };
