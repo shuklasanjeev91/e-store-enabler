@@ -19,6 +19,11 @@ import { z } from "zod";
 import { THEMES, type ThemeId } from "@/components/storefront/themes";
 import { cn } from "@/lib/utils";
 
+// Featured themes for onboarding (one from each category)
+const FEATURED_THEMES = THEMES.filter((t) =>
+  ["fashion-minimal", "grocery-fresh", "electronics-tech", "books-classic"].includes(t.id)
+);
+
 const countries = [
   { code: "US", name: "United States", currency: "USD", symbol: "$" },
   { code: "GB", name: "United Kingdom", currency: "GBP", symbol: "£" },
@@ -41,7 +46,7 @@ const storeNameSchema = z
 export default function Onboarding() {
   const [storeName, setStoreName] = useState("");
   const [country, setCountry] = useState("US");
-  const [selectedTheme, setSelectedTheme] = useState<ThemeId>("minimal");
+  const [selectedTheme, setSelectedTheme] = useState<ThemeId>("fashion-minimal");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCheckingStores, setIsCheckingStores] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -228,11 +233,10 @@ export default function Onboarding() {
             </div>
           </div>
 
-          {/* Theme Selection */}
           <div className="space-y-3">
             <Label>Choose a theme</Label>
             <div className="grid gap-3 sm:grid-cols-2">
-              {THEMES.map((theme) => (
+              {FEATURED_THEMES.map((theme) => (
                 <button
                   key={theme.id}
                   type="button"
@@ -244,11 +248,14 @@ export default function Onboarding() {
                       : "border-muted hover:border-muted-foreground/30"
                   )}
                 >
-                  {/* Theme preview swatch */}
-                  <div className={cn(
-                    "h-10 w-10 shrink-0 rounded-lg border",
-                    theme.preview
-                  )} />
+                  {/* Theme preview image */}
+                  <div className="h-12 w-16 shrink-0 overflow-hidden rounded-lg border bg-muted">
+                    <img
+                      src={theme.preview}
+                      alt={theme.name}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
                   <div className="flex-1">
                     <p className="font-medium">{theme.name}</p>
                     <p className="text-sm text-muted-foreground">{theme.description}</p>
@@ -261,6 +268,9 @@ export default function Onboarding() {
                 </button>
               ))}
             </div>
+            <p className="text-xs text-muted-foreground">
+              You can explore more themes in the dashboard after creating your store.
+            </p>
           </div>
 
           {/* Submit Button */}
