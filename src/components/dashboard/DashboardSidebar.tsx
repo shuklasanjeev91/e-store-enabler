@@ -14,7 +14,13 @@ import {
   Settings,
   ExternalLink,
   ChevronLeft,
+  ChevronDown,
   Menu,
+  Layers,
+  FileText,
+  List,
+  BookOpen,
+  Image,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -24,7 +30,14 @@ interface DashboardSidebarProps {
   storeSlug: string;
 }
 
-const navItems = [
+interface NavItem {
+  label: string;
+  icon: React.ElementType;
+  path?: string;
+  children?: { label: string; icon: React.ElementType; path: string }[];
+}
+
+const navItems: NavItem[] = [
   { label: "Dashboard", icon: Home, path: "/dashboard" },
   { label: "Orders", icon: ShoppingCart, path: "/dashboard/orders" },
   { label: "Delivery", icon: Truck, path: "/dashboard/delivery" },
@@ -33,7 +46,17 @@ const navItems = [
   { label: "Payouts", icon: Wallet, path: "/dashboard/payouts" },
   { label: "Discounts", icon: Percent, path: "/dashboard/discounts" },
   { label: "Audience", icon: Users, path: "/dashboard/audience" },
-  { label: "Appearance", icon: Palette, path: "/dashboard/appearance" },
+  {
+    label: "Appearance",
+    icon: Palette,
+    children: [
+      { label: "Themes", icon: Layers, path: "/dashboard/appearance" },
+      { label: "Pages", icon: FileText, path: "/dashboard/appearance/pages" },
+      { label: "Menus", icon: List, path: "/dashboard/appearance/menus" },
+      { label: "Blog", icon: BookOpen, path: "/dashboard/appearance/blog" },
+      { label: "Media", icon: Image, path: "/dashboard/appearance/media" },
+    ],
+  },
   { label: "Plugins", icon: Puzzle, path: "/dashboard/plugins" },
   { label: "Settings", icon: Settings, path: "/dashboard/settings" },
 ];
@@ -42,6 +65,19 @@ export default function DashboardSidebar({ storeName, storeSlug }: DashboardSide
   const navigate = useNavigate();
   const location = useLocation();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [expandedMenus, setExpandedMenus] = useState<string[]>(["Appearance"]);
+
+  const toggleMenu = (label: string) => {
+    setExpandedMenus((prev) =>
+      prev.includes(label)
+        ? prev.filter((item) => item !== label)
+        : [...prev, label]
+    );
+  };
+
+  const isActive = (path?: string) => path && location.pathname === path;
+  const isParentActive = (children?: NavItem["children"]) =>
+    children?.some((child) => location.pathname === child.path);
 
   return (
     <>
@@ -100,21 +136,62 @@ export default function DashboardSidebar({ storeName, storeSlug }: DashboardSide
         <nav className="flex-1 overflow-y-auto py-4">
           <ul className="space-y-1 px-2">
             {navItems.map((item) => {
-              const isActive = location.pathname === item.path;
+              const hasChildren = item.children && item.children.length > 0;
+              const isExpanded = expandedMenus.includes(item.label);
+              const activeParent = isParentActive(item.children);
+
               return (
-                <li key={item.path}>
+                <li key={item.label}>
                   <button
-                    onClick={() => navigate(item.path)}
+                    onClick={() => {
+                      if (hasChildren) {
+                        toggleMenu(item.label);
+                      } else if (item.path) {
+                        navigate(item.path);
+                      }
+                    }}
                     className={cn(
-                      "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                      isActive
+                      "flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                      isActive(item.path) || activeParent
                         ? "bg-white/10 text-white"
                         : "text-white/70 hover:bg-white/5 hover:text-white"
                     )}
                   >
-                    <item.icon className="h-5 w-5 shrink-0" />
-                    {!isCollapsed && <span>{item.label}</span>}
+                    <div className="flex items-center gap-3">
+                      <item.icon className="h-5 w-5 shrink-0" />
+                      {!isCollapsed && <span>{item.label}</span>}
+                    </div>
+                    {hasChildren && !isCollapsed && (
+                      <ChevronDown
+                        className={cn(
+                          "h-4 w-4 transition-transform",
+                          isExpanded && "rotate-180"
+                        )}
+                      />
+                    )}
                   </button>
+
+                  {/* Submenu */}
+                  {hasChildren && isExpanded && !isCollapsed && (
+                    <ul className="mt-1 space-y-1 pl-4">
+                      {item.children?.map((child) => (
+                        <li key={child.path}>
+                          <button
+                            onClick={() => navigate(child.path)}
+                            className={cn(
+                              "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                              isActive(child.path)
+                                ? "bg-white/10 text-white font-medium"
+                                : "text-white/60 hover:bg-white/5 hover:text-white"
+                            )}
+                          >
+                            <child.icon className="h-4 w-4 shrink-0" />
+                            <span>{child.label}</span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </li>
               );
             })}
