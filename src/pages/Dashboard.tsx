@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { CreateStoreModal } from "@/components/CreateStoreModal";
 import {
   Plus,
   Store,
@@ -13,7 +14,6 @@ import {
   Settings,
   LogOut,
   Loader2,
-  TrendingUp,
   DollarSign,
   Users,
 } from "lucide-react";
@@ -31,6 +31,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [stores, setStores] = useState<StoreData[]>([]);
   const [isLoadingStores, setIsLoadingStores] = useState(true);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -52,12 +53,23 @@ export default function Dashboard() {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
+      
       setStores(data || []);
+      
+      // Show modal if user has no stores
+      if (!data || data.length === 0) {
+        setShowCreateModal(true);
+      }
     } catch (error) {
       console.error("Error fetching stores:", error);
     } finally {
       setIsLoadingStores(false);
     }
+  };
+
+  const handleStoreCreated = () => {
+    setShowCreateModal(false);
+    fetchStores();
   };
 
   const handleSignOut = async () => {
@@ -74,7 +86,9 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-muted/30">
+    <>
+      <CreateStoreModal isOpen={showCreateModal} onStoreCreated={handleStoreCreated} />
+      <div className="min-h-screen bg-muted/30">
       {/* Header */}
       <header className="border-b bg-background">
         <div className="container flex h-16 items-center justify-between px-4">
@@ -226,5 +240,6 @@ export default function Dashboard() {
         </div>
       </div>
     </div>
+    </>
   );
 }
