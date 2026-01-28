@@ -26,7 +26,8 @@ export default function Auth() {
 
   useEffect(() => {
     if (user && !isLoading) {
-      navigate("/dashboard");
+      // Redirect to onboarding - it will check if user needs to create a store
+      navigate("/onboarding");
     }
   }, [user, isLoading, navigate]);
 
