@@ -84,6 +84,7 @@ export default function Pages() {
       const { data: storeData, error: storeError } = await supabase
         .from("stores")
         .select("id, name, slug")
+        .eq("user_id", user!.id)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();

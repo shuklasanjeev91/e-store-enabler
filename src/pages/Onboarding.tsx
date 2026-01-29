@@ -64,6 +64,7 @@ export default function Onboarding() {
         const { data, error } = await supabase
           .from("stores")
           .select("id")
+          .eq("user_id", user.id)
           .limit(1);
 
         if (error) throw error;
