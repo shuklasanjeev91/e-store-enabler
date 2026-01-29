@@ -169,10 +169,10 @@ export function StorefrontProvider({ children }: { children: ReactNode }) {
     if (!storeId) return;
     const { data } = await supabase
       .from("pages")
-      .select("id, title, slug")
+      .select("id, title, slug, sort_order")
       .eq("store_id", storeId)
       .eq("status", "published")
-      .order("created_at");
+      .order("sort_order", { ascending: true });
     if (data) setPages(data);
   };
 
