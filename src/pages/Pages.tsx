@@ -1,17 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, FileText, Plus, MoreVertical, Pencil, Trash2, Eye, HelpCircle } from "lucide-react";
+import { Loader2, FileText, Plus, HelpCircle } from "lucide-react";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,7 +16,22 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
-import { format } from "date-fns";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { SortablePageRow } from "@/components/dashboard/SortablePageRow";
 
 interface Page {
   id: string;
@@ -32,6 +40,7 @@ interface Page {
   status: string;
   created_at: string;
   updated_at: string;
+  sort_order: number | null;
 }
 
 interface StoreData {
@@ -49,6 +58,14 @@ export default function Pages() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [pageToDelete, setPageToDelete] = useState<Page | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isSavingOrder, setIsSavingOrder] = useState(false);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -64,7 +81,6 @@ export default function Pages() {
 
   const fetchData = async () => {
     try {
-      // Fetch store
       const { data: storeData, error: storeError } = await supabase
         .from("stores")
         .select("id, name, slug")
@@ -81,12 +97,11 @@ export default function Pages() {
 
       setStore(storeData);
 
-      // Fetch pages
       const { data: pagesData, error: pagesError } = await supabase
         .from("pages")
-        .select("id, title, slug, status, created_at, updated_at")
+        .select("id, title, slug, status, created_at, updated_at, sort_order")
         .eq("store_id", storeData.id)
-        .order("created_at", { ascending: false });
+        .order("sort_order", { ascending: true });
 
       if (pagesError) throw pagesError;
       setPages(pagesData || []);
@@ -101,6 +116,55 @@ export default function Pages() {
       setIsLoadingData(false);
     }
   };
+
+  const handleDragEnd = useCallback(
+    async (event: DragEndEvent) => {
+      const { active, over } = event;
+
+      if (!over || active.id === over.id) return;
+
+      const oldIndex = pages.findIndex((p) => p.id === active.id);
+      const newIndex = pages.findIndex((p) => p.id === over.id);
+
+      const newPages = arrayMove(pages, oldIndex, newIndex);
+      setPages(newPages);
+
+      // Save new order to database
+      setIsSavingOrder(true);
+      try {
+        const updates = newPages.map((page, index) => ({
+          id: page.id,
+          sort_order: index + 1,
+        }));
+
+        for (const update of updates) {
+          const { error } = await supabase
+            .from("pages")
+            .update({ sort_order: update.sort_order })
+            .eq("id", update.id);
+
+          if (error) throw error;
+        }
+
+        toast({
+          title: "Order saved",
+          description: "Page order has been updated.",
+        });
+      } catch (error) {
+        console.error("Error saving order:", error);
+        toast({
+          title: "Failed to save order",
+          description: "Please try again.",
+          variant: "destructive",
+        });
+        // Revert on error
+        fetchData();
+      } finally {
+        setIsSavingOrder(false);
+      }
+    },
+    [pages]
+  );
 
   const handleDelete = async () => {
     if (!pageToDelete) return;
@@ -133,6 +197,19 @@ export default function Pages() {
     }
   };
 
+  const handleEdit = (pageId: string) => {
+    navigate(`/dashboard/appearance/pages/${pageId}`);
+  };
+
+  const handleView = (storeSlug: string, pageSlug: string) => {
+    window.open(`/store/${storeSlug}/page/${pageSlug}`, "_blank");
+  };
+
+  const handleDeleteClick = (page: Page) => {
+    setPageToDelete(page);
+    setDeleteDialogOpen(true);
+  };
+
   if (isLoading || isLoadingData) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-muted/30">
@@ -158,9 +235,18 @@ export default function Pages() {
                 <HelpCircle className="h-4 w-4" />
                 How it works
               </Button>
+              {isSavingOrder && (
+                <span className="text-sm text-muted-foreground flex items-center gap-1">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Saving...
+                </span>
+              )}
             </div>
             {pages.length > 0 && (
-              <Button onClick={() => navigate("/dashboard/appearance/pages/new")} className="gap-2">
+              <Button
+                onClick={() => navigate("/dashboard/appearance/pages/new")}
+                className="gap-2"
+              >
                 <Plus className="h-4 w-4" />
                 Add page
               </Button>
@@ -170,16 +256,21 @@ export default function Pages() {
 
         <div className="p-6 lg:p-8">
           {pages.length === 0 ? (
-            // Empty State
             <div className="flex flex-col items-center justify-center py-24">
               <div className="mb-6 flex h-32 w-32 items-center justify-center rounded-full bg-primary/10">
                 <FileText className="h-16 w-16 text-primary" />
               </div>
-              <h2 className="mb-2 text-xl font-semibold">Add pages to provide more details</h2>
+              <h2 className="mb-2 text-xl font-semibold">
+                Add pages to provide more details
+              </h2>
               <p className="mb-6 max-w-md text-center text-muted-foreground">
-                Start creating pages for your store to share more information about your products, brand, etc
+                Start creating pages for your store to share more information
+                about your products, brand, etc
               </p>
-              <Button onClick={() => navigate("/dashboard/appearance/pages/new")} className="gap-2">
+              <Button
+                onClick={() => navigate("/dashboard/appearance/pages/new")}
+                className="gap-2"
+              >
                 Add page
               </Button>
               <button className="mt-4 text-sm text-primary hover:underline">
@@ -187,74 +278,52 @@ export default function Pages() {
               </button>
             </div>
           ) : (
-            // Pages List
             <div className="rounded-xl border bg-background">
+              <div className="px-6 py-3 border-b">
+                <p className="text-sm text-muted-foreground">
+                  Drag and drop to reorder pages. The order will be reflected in your store navigation.
+                </p>
+              </div>
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b text-left">
-                      <th className="px-6 py-3 text-sm font-medium text-muted-foreground">Title</th>
-                      <th className="px-6 py-3 text-sm font-medium text-muted-foreground">Status</th>
-                      <th className="px-6 py-3 text-sm font-medium text-muted-foreground">Last Updated</th>
+                      <th className="px-3 py-3 text-sm font-medium text-muted-foreground w-10"></th>
+                      <th className="px-6 py-3 text-sm font-medium text-muted-foreground">
+                        Title
+                      </th>
+                      <th className="px-6 py-3 text-sm font-medium text-muted-foreground">
+                        Status
+                      </th>
+                      <th className="px-6 py-3 text-sm font-medium text-muted-foreground">
+                        Last Updated
+                      </th>
                       <th className="px-6 py-3 text-sm font-medium text-muted-foreground"></th>
                     </tr>
                   </thead>
-                  <tbody>
-                    {pages.map((page) => (
-                      <tr key={page.id} className="border-b last:border-b-0 hover:bg-muted/50">
-                        <td className="px-6 py-4">
-                          <button
-                            onClick={() => navigate(`/dashboard/appearance/pages/${page.id}`)}
-                            className="font-medium text-foreground hover:text-primary"
-                          >
-                            {page.title}
-                          </button>
-                          <p className="text-sm text-muted-foreground">/{page.slug}</p>
-                        </td>
-                        <td className="px-6 py-4">
-                          <Badge variant={page.status === "published" ? "default" : "secondary"}>
-                            {page.status === "published" ? "Published" : "Draft"}
-                          </Badge>
-                        </td>
-                        <td className="px-6 py-4 text-sm text-muted-foreground">
-                          {format(new Date(page.updated_at), "MMM d, yyyy")}
-                        </td>
-                        <td className="px-6 py-4">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                onClick={() => navigate(`/dashboard/appearance/pages/${page.id}`)}
-                              >
-                                <Pencil className="mr-2 h-4 w-4" />
-                                Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => window.open(`/store/${store.slug}/page/${page.slug}`, "_blank")}
-                              >
-                                <Eye className="mr-2 h-4 w-4" />
-                                View
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => {
-                                  setPageToDelete(page);
-                                  setDeleteDialogOpen(true);
-                                }}
-                                className="text-destructive focus:text-destructive"
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <SortableContext
+                      items={pages.map((p) => p.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      <tbody>
+                        {pages.map((page) => (
+                          <SortablePageRow
+                            key={page.id}
+                            page={page}
+                            storeSlug={store.slug}
+                            onEdit={handleEdit}
+                            onView={handleView}
+                            onDelete={handleDeleteClick}
+                          />
+                        ))}
+                      </tbody>
+                    </SortableContext>
+                  </DndContext>
                 </table>
               </div>
             </div>
@@ -267,7 +336,8 @@ export default function Pages() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete page?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{pageToDelete?.title}"? This action cannot be undone.
+              Are you sure you want to delete "{pageToDelete?.title}"? This
+              action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -277,7 +347,11 @@ export default function Pages() {
               disabled={isDeleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Delete"}
+              {isDeleting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "Delete"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

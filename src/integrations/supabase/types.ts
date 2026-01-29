@@ -520,6 +520,7 @@ export type Database = {
           meta_title: string | null
           og_image_url: string | null
           slug: string
+          sort_order: number | null
           status: string
           store_id: string
           title: string
@@ -534,6 +535,7 @@ export type Database = {
           meta_title?: string | null
           og_image_url?: string | null
           slug: string
+          sort_order?: number | null
           status?: string
           store_id: string
           title: string
@@ -548,6 +550,7 @@ export type Database = {
           meta_title?: string | null
           og_image_url?: string | null
           slug?: string
+          sort_order?: number | null
           status?: string
           store_id?: string
           title?: string
