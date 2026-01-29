@@ -1,6 +1,6 @@
-import { ShoppingBag, Search, Menu, X, Heart, User, ArrowLeft, Calendar, Clock } from "lucide-react";
+import { ShoppingBag, Search, Menu, X, Heart, User, Home, ChevronRight, Clock } from "lucide-react";
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useStorefront } from "@/contexts/StorefrontContext";
 import CartDrawer from "@/components/storefront/CartDrawer";
 import WishlistDrawer from "@/components/storefront/WishlistDrawer";
@@ -43,6 +43,7 @@ export default function MinimalPageLayout({ store, page }: MinimalPageLayoutProp
     setIsWishlistOpen,
     setIsAuthOpen,
     customer,
+    pages,
   } = useStorefront();
 
   useEffect(() => {
@@ -56,16 +57,25 @@ export default function MinimalPageLayout({ store, page }: MinimalPageLayoutProp
       <header className="sticky top-0 z-50 border-b border-gray-100 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-8">
-            <a
-              href={`/store/${store.slug}`}
+            <Link
+              to={`/store/${store.slug}`}
               className="text-xl font-light tracking-wide transition-colors hover:text-gray-600"
             >
               {store.name}
-            </a>
-            <nav className="hidden space-x-8 md:flex">
-              <a href={`/store/${store.slug}`} className="text-sm text-gray-600 transition-colors hover:text-gray-900">
+            </Link>
+            <nav className="hidden items-center gap-6 md:flex">
+              <Link to={`/store/${store.slug}`} className="text-sm text-gray-600 transition-colors hover:text-gray-900">
                 Shop
-              </a>
+              </Link>
+              {pages.slice(0, 3).map((p) => (
+                <Link
+                  key={p.id}
+                  to={`/store/${store.slug}/page/${p.slug}`}
+                  className={`text-sm transition-colors ${p.slug === page.slug ? "text-gray-900 font-medium" : "text-gray-600 hover:text-gray-900"}`}
+                >
+                  {p.title}
+                </Link>
+              ))}
             </nav>
           </div>
           <div className="flex items-center gap-1">
@@ -113,49 +123,70 @@ export default function MinimalPageLayout({ store, page }: MinimalPageLayoutProp
             Welcome back, {customer.name || customer.email || customer.phone}!
           </div>
         )}
+        {/* Mobile menu */}
+        {mobileMenuOpen && (
+          <div className="border-t bg-white p-4 md:hidden">
+            <nav className="flex flex-col gap-3">
+              <Link to={`/store/${store.slug}`} className="text-sm text-gray-600 hover:text-gray-900">Shop</Link>
+              {pages.map((p) => (
+                <Link
+                  key={p.id}
+                  to={`/store/${store.slug}/page/${p.slug}`}
+                  className="text-sm text-gray-600 hover:text-gray-900"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {p.title}
+                </Link>
+              ))}
+            </nav>
+          </div>
+        )}
       </header>
 
-      {/* Hero Section */}
-      <div className="border-b border-gray-100 bg-gradient-to-b from-gray-50 to-white">
-        <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
-          <button
-            onClick={() => navigate(`/store/${store.slug}`)}
-            className="mb-8 inline-flex items-center gap-2 text-sm text-gray-500 transition-colors hover:text-gray-900"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to store
-          </button>
-          <h1 className="text-4xl font-light tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
-            {page.title}
-          </h1>
-          {(page.created_at || page.updated_at) && (
-            <div className="mt-6 flex flex-wrap items-center gap-4 text-sm text-gray-500">
-              {page.updated_at && (
-                <div className="flex items-center gap-1.5">
-                  <Clock className="h-4 w-4" />
-                  <span>Updated {format(new Date(page.updated_at), "MMMM d, yyyy")}</span>
-                </div>
-              )}
-            </div>
-          )}
+      {/* Breadcrumb */}
+      <div className="border-b border-gray-100 bg-gray-50/50">
+        <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
+          <nav className="flex items-center gap-2 text-sm">
+            <Link
+              to={`/store/${store.slug}`}
+              className="flex items-center gap-1 text-gray-500 hover:text-gray-900 transition-colors"
+            >
+              <Home className="h-4 w-4" />
+              <span>Home</span>
+            </Link>
+            <ChevronRight className="h-4 w-4 text-gray-400" />
+            <span className="font-medium text-gray-900">{page.title}</span>
+          </nav>
         </div>
       </div>
 
-      {/* Page Content */}
+      {/* Page Content - Full Width */}
       <main className="flex-1">
-        <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
-          <article>
+        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8 lg:py-16">
+          {/* Page Header */}
+          <div className="mb-8 lg:mb-12">
+            <h1 className="text-3xl font-light tracking-tight text-gray-900 sm:text-4xl lg:text-5xl">
+              {page.title}
+            </h1>
+            {page.updated_at && (
+              <div className="mt-4 flex items-center gap-1.5 text-sm text-gray-500">
+                <Clock className="h-4 w-4" />
+                <span>Updated {format(new Date(page.updated_at), "MMMM d, yyyy")}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Content */}
+          <article className="w-full">
             {page.content ? (
               <div
-                className="prose prose-gray prose-lg max-w-none prose-headings:font-light prose-headings:tracking-tight prose-p:leading-relaxed prose-a:text-gray-900 prose-a:underline prose-a:underline-offset-4 prose-img:rounded-xl"
+                className="prose prose-gray prose-lg max-w-none prose-headings:font-light prose-headings:tracking-tight prose-p:leading-relaxed prose-a:text-gray-900 prose-a:underline prose-a:underline-offset-4 prose-img:rounded-xl prose-img:w-full"
                 dangerouslySetInnerHTML={{ __html: page.content }}
               />
             ) : (
-              <div className="flex min-h-[300px] flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50/50 p-12 text-center">
-                <div className="mx-auto max-w-sm">
-                  <p className="text-lg font-light text-gray-500">This page is empty</p>
-                  <p className="mt-2 text-sm text-gray-400">Content will appear here once it's added.</p>
-                </div>
+              <div className="flex min-h-[200px] flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50/50 p-8 text-center">
+                <p className="text-lg font-light text-gray-500">This page is empty</p>
+                <p className="mt-2 text-sm text-gray-400">Content will appear here once it's added.</p>
               </div>
             )}
           </article>
@@ -164,14 +195,33 @@ export default function MinimalPageLayout({ store, page }: MinimalPageLayoutProp
 
       {/* Footer */}
       <footer className="mt-auto border-t border-gray-100 bg-gray-50">
-        <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
-          <div className="flex flex-col items-center justify-between gap-6 sm:flex-row">
-            <a href={`/store/${store.slug}`} className="text-lg font-light tracking-wide text-gray-900">
-              {store.name}
-            </a>
-            <p className="text-sm text-gray-500">
-              © {new Date().getFullYear()} {store.name}. All rights reserved.
-            </p>
+        <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+          <div className="grid gap-8 md:grid-cols-3">
+            <div>
+              <Link to={`/store/${store.slug}`} className="text-lg font-light tracking-wide text-gray-900">
+                {store.name}
+              </Link>
+              {store.description && (
+                <p className="mt-2 text-sm text-gray-500">{store.description}</p>
+              )}
+            </div>
+            <div>
+              <h3 className="font-medium text-gray-900">Quick Links</h3>
+              <nav className="mt-3 flex flex-col gap-2">
+                <Link to={`/store/${store.slug}`} className="text-sm text-gray-500 hover:text-gray-900">Shop</Link>
+                {pages.slice(0, 4).map((p) => (
+                  <Link key={p.id} to={`/store/${store.slug}/page/${p.slug}`} className="text-sm text-gray-500 hover:text-gray-900">
+                    {p.title}
+                  </Link>
+                ))}
+              </nav>
+            </div>
+            <div className="text-right">
+              <p className="text-sm text-gray-500">
+                © {new Date().getFullYear()} {store.name}
+              </p>
+              <p className="mt-1 text-sm text-gray-400">All rights reserved.</p>
+            </div>
           </div>
         </div>
       </footer>
