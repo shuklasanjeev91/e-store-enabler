@@ -254,6 +254,7 @@ export default function Appearance() {
                               variant="secondary"
                               size="sm"
                               className="ml-2 shrink-0"
+                              onClick={() => navigate("/dashboard/appearance/customize")}
                             >
                               Customize
                             </Button>
