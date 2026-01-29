@@ -46,6 +46,7 @@ export default function BoldTheme({ store, products }: BoldThemeProps) {
     setIsAuthOpen,
     customer,
     categories,
+    pages,
   } = useStorefront();
 
   const [filters, setFilters] = useState<FilterState>({
@@ -221,11 +222,22 @@ export default function BoldTheme({ store, products }: BoldThemeProps) {
               </ul>
             </div>
             <div>
-              <h4 className="font-bold uppercase tracking-wider">Help</h4>
+              <h4 className="font-bold uppercase tracking-wider">Information</h4>
               <ul className="mt-2 space-y-2 text-sm text-white/60">
-                <li><a href="#">FAQ</a></li>
-                <li><a href="#">Shipping</a></li>
-                <li><a href="#">Returns</a></li>
+                {pages.slice(0, 4).map((page) => (
+                  <li key={page.id}>
+                    <a href={`/store/${store.slug}/page/${page.slug}`} className="hover:text-white">
+                      {page.title}
+                    </a>
+                  </li>
+                ))}
+                {pages.length === 0 && (
+                  <>
+                    <li><a href="#">FAQ</a></li>
+                    <li><a href="#">Shipping</a></li>
+                    <li><a href="#">Returns</a></li>
+                  </>
+                )}
               </ul>
             </div>
             <div>

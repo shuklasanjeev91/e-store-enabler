@@ -44,12 +44,19 @@ interface Category {
   parent_id: string | null;
 }
 
+interface StorePage {
+  id: string;
+  title: string;
+  slug: string;
+}
+
 interface StorefrontContextType {
   customer: Customer | null;
   setCustomer: (customer: Customer | null) => void;
   cartItems: CartItem[];
   wishlistItems: WishlistItem[];
   categories: Category[];
+  pages: StorePage[];
   cartId: string | null;
   sessionId: string;
   isAuthOpen: boolean;
@@ -85,6 +92,7 @@ export function StorefrontProvider({ children }: { children: ReactNode }) {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [pages, setPages] = useState<StorePage[]>([]);
   const [cartId, setCartId] = useState<string | null>(null);
   const [storeId, setStoreId] = useState<string | null>(null);
   const [currency, setCurrency] = useState<string>("USD");
@@ -122,10 +130,11 @@ export function StorefrontProvider({ children }: { children: ReactNode }) {
     }
   }, [customer]);
 
-  // Fetch categories when store changes
+  // Fetch categories and pages when store changes
   useEffect(() => {
     if (storeId) {
       fetchCategories();
+      fetchPages();
     }
   }, [storeId]);
 
@@ -154,6 +163,17 @@ export function StorefrontProvider({ children }: { children: ReactNode }) {
       .eq("status", "active")
       .order("sort_order");
     if (data) setCategories(data);
+  };
+
+  const fetchPages = async () => {
+    if (!storeId) return;
+    const { data } = await supabase
+      .from("pages")
+      .select("id, title, slug")
+      .eq("store_id", storeId)
+      .eq("status", "published")
+      .order("created_at");
+    if (data) setPages(data);
   };
 
   const initializeCart = async () => {
@@ -310,6 +330,7 @@ export function StorefrontProvider({ children }: { children: ReactNode }) {
         cartItems,
         wishlistItems,
         categories,
+        pages,
         cartId,
         sessionId,
         isAuthOpen,

@@ -13,6 +13,7 @@ import Appearance from "./pages/Appearance";
 import Pages from "./pages/Pages";
 import PageEditor from "./pages/PageEditor";
 import Storefront from "./pages/Storefront";
+import StorePage from "./pages/StorePage";
 import ProductDetail from "./pages/ProductDetail";
 import Checkout from "./pages/Checkout";
 import OrderSuccess from "./pages/OrderSuccess";
@@ -37,6 +38,7 @@ const App = () => (
               <Route path="/dashboard/appearance/pages" element={<Pages />} />
               <Route path="/dashboard/appearance/pages/:pageId" element={<PageEditor />} />
               <Route path="/store/:slug" element={<Storefront />} />
+              <Route path="/store/:slug/page/:pageSlug" element={<StorePage />} />
               <Route path="/store/:slug/product/:productId" element={<ProductDetail />} />
               <Route path="/store/:slug/checkout" element={<Checkout />} />
               <Route path="/store/:slug/order-success/:orderId" element={<OrderSuccess />} />
