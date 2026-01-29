@@ -7,6 +7,39 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// ==========================================
+// INPUT VALIDATION UTILITIES
+// ==========================================
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PHONE_REGEX = /^\+?[1-9]\d{1,14}$/;
+const OTP_REGEX = /^\d{6}$/;
+
+function isValidUUID(value: unknown): value is string {
+  return typeof value === "string" && UUID_REGEX.test(value);
+}
+
+function isValidEmail(value: unknown): value is string {
+  return typeof value === "string" && value.length <= 255 && EMAIL_REGEX.test(value);
+}
+
+function isValidPhone(value: unknown): value is string {
+  return typeof value === "string" && value.length <= 20 && PHONE_REGEX.test(value);
+}
+
+function isValidOTP(value: unknown): value is string {
+  return typeof value === "string" && OTP_REGEX.test(value);
+}
+
+function isValidOTPType(value: unknown): value is "email" | "phone" {
+  return value === "email" || value === "phone";
+}
+
+function isValidAction(value: unknown): value is "send_otp" | "verify_otp" {
+  return value === "send_otp" || value === "verify_otp";
+}
+
 interface SendOTPRequest {
   action: "send_otp";
   store_id: string;
@@ -31,6 +64,13 @@ function generateOTP(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
+function createErrorResponse(message: string, status: number): Response {
+  return new Response(
+    JSON.stringify({ error: message }),
+    { status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+  );
+}
+
 const handler = async (req: Request): Promise<Response> => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -42,18 +82,72 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const body: RequestBody = await req.json();
-    const { action, store_id, otp_type } = body;
+    // Parse request body
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      return createErrorResponse("Invalid JSON body", 400);
+    }
 
+    // Validate body is an object
+    if (!body || typeof body !== "object" || Array.isArray(body)) {
+      return createErrorResponse("Request body must be an object", 400);
+    }
+
+    const requestBody = body as Record<string, unknown>;
+
+    // Validate action
+    if (!isValidAction(requestBody.action)) {
+      return createErrorResponse("Invalid action. Must be 'send_otp' or 'verify_otp'", 400);
+    }
+
+    // Validate store_id
+    if (!isValidUUID(requestBody.store_id)) {
+      return createErrorResponse("Invalid store_id format", 400);
+    }
+
+    // Validate otp_type
+    if (!isValidOTPType(requestBody.otp_type)) {
+      return createErrorResponse("Invalid otp_type. Must be 'email' or 'phone'", 400);
+    }
+
+    const action = requestBody.action as "send_otp" | "verify_otp";
+    const store_id = requestBody.store_id as string;
+    const otp_type = requestBody.otp_type as "email" | "phone";
+
+    // ==========================================
+    // SEND OTP HANDLER
+    // ==========================================
     if (action === "send_otp") {
-      const { email, phone } = body as SendOTPRequest;
+      const email = requestBody.email as string | undefined;
+      const phone = requestBody.phone as string | undefined;
+      
+      // Validate email or phone based on otp_type
+      if (otp_type === "email") {
+        if (!isValidEmail(email)) {
+          return createErrorResponse("Invalid email format", 400);
+        }
+      } else {
+        if (!isValidPhone(phone)) {
+          return createErrorResponse("Invalid phone format. Use E.164 format (e.g., +1234567890)", 400);
+        }
+      }
+
       const identifier = otp_type === "email" ? email : phone;
 
-      if (!identifier) {
-        return new Response(
-          JSON.stringify({ error: `${otp_type} is required` }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+      // Rate limiting: Check for recent OTP requests (max 1 per 60 seconds)
+      const { data: recentOtps } = await supabase
+        .from("customer_otp")
+        .select("created_at")
+        .eq("store_id", store_id)
+        .eq(otp_type, identifier)
+        .gte("created_at", new Date(Date.now() - 60000).toISOString())
+        .order("created_at", { ascending: false })
+        .limit(1);
+
+      if (recentOtps && recentOtps.length > 0) {
+        return createErrorResponse("Please wait 60 seconds before requesting another OTP", 429);
       }
 
       // Check if customer exists or create new one
@@ -88,10 +182,7 @@ const handler = async (req: Request): Promise<Response> => {
 
         if (createError) {
           console.error("Error creating customer:", createError);
-          return new Response(
-            JSON.stringify({ error: "Failed to create customer" }),
-            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
+          return createErrorResponse("Failed to create customer", 500);
         }
 
         customerId = newCustomer.id;
@@ -122,14 +213,10 @@ const handler = async (req: Request): Promise<Response> => {
 
       if (otpError) {
         console.error("Error storing OTP:", otpError);
-        return new Response(
-          JSON.stringify({ error: "Failed to generate OTP" }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return createErrorResponse("Failed to generate OTP", 500);
       }
 
       // In production, send OTP via email/SMS service
-      // For now, we'll log it (in development) and return success
       console.log(`[DEV] OTP for ${identifier}: ${otpCode}`);
 
       // TODO: Integrate with email service (Resend) for email OTP
@@ -147,15 +234,46 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    // ==========================================
+    // VERIFY OTP HANDLER
+    // ==========================================
     if (action === "verify_otp") {
-      const { otp_code, customer_id, email, phone } = body as VerifyOTPRequest;
+      const otp_code = requestBody.otp_code as string;
+      const customer_id = requestBody.customer_id as string | undefined;
+      const email = requestBody.email as string | undefined;
+      const phone = requestBody.phone as string | undefined;
+      
+      // Validate OTP format
+      if (!isValidOTP(otp_code)) {
+        return createErrorResponse("Invalid OTP format. Must be 6 digits", 400);
+      }
+
+      // Validate optional fields
+      if (customer_id !== undefined && !isValidUUID(customer_id)) {
+        return createErrorResponse("Invalid customer_id format", 400);
+      }
+      
+      if (otp_type === "email" && email !== undefined && !isValidEmail(email)) {
+        return createErrorResponse("Invalid email format", 400);
+      }
+      
+      if (otp_type === "phone" && phone !== undefined && !isValidPhone(phone)) {
+        return createErrorResponse("Invalid phone format", 400);
+      }
+
       const identifier = otp_type === "email" ? email : phone;
 
-      if (!otp_code || otp_code.length !== 6) {
-        return new Response(
-          JSON.stringify({ error: "Invalid OTP format" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+      // Brute force protection: Check for too many recent OTP attempts
+      const { data: recentAttempts } = await supabase
+        .from("customer_otp")
+        .select("id")
+        .eq("store_id", store_id)
+        .eq(otp_type, identifier)
+        .gte("created_at", new Date(Date.now() - 600000).toISOString())
+        .limit(6);
+
+      if (recentAttempts && recentAttempts.length >= 5) {
+        return createErrorResponse("Too many attempts. Please request a new OTP", 429);
       }
 
       // Find OTP record
@@ -176,18 +294,12 @@ const handler = async (req: Request): Promise<Response> => {
       const { data: otpRecord, error: otpFetchError } = await otpQuery.maybeSingle();
 
       if (otpFetchError || !otpRecord) {
-        return new Response(
-          JSON.stringify({ error: "Invalid or expired OTP" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return createErrorResponse("Invalid or expired OTP", 400);
       }
 
       // Check expiry
       if (new Date(otpRecord.expires_at) < new Date()) {
-        return new Response(
-          JSON.stringify({ error: "OTP has expired" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return createErrorResponse("OTP has expired", 400);
       }
 
       // Mark OTP as verified
@@ -224,16 +336,11 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    return new Response(
-      JSON.stringify({ error: "Invalid action" }),
-      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  } catch (error: any) {
+    return createErrorResponse("Invalid action", 400);
+  } catch (error: unknown) {
     console.error("Error in customer-auth function:", error);
-    return new Response(
-      JSON.stringify({ error: error.message || "Internal server error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    const message = error instanceof Error ? error.message : "Internal server error";
+    return createErrorResponse(message, 500);
   }
 };
 
