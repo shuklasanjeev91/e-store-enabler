@@ -21,16 +21,23 @@ import {
   Heading3,
   Undo,
   Redo,
+  Upload,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useRef, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 interface RichTextEditorProps {
   content: string;
   onChange: (content: string) => void;
   placeholder?: string;
+  storeId?: string;
 }
 
-export function RichTextEditor({ content, onChange, placeholder }: RichTextEditorProps) {
+export function RichTextEditor({ content, onChange, placeholder, storeId }: RichTextEditorProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -45,15 +52,17 @@ export function RichTextEditor({ content, onChange, placeholder }: RichTextEdito
         },
       }),
       Image.configure({
+        inline: false,
+        allowBase64: true,
         HTMLAttributes: {
-          class: "max-w-full h-auto rounded-lg",
+          class: "max-w-full h-auto rounded-lg my-4",
         },
       }),
       TextAlign.configure({
         types: ["heading", "paragraph"],
       }),
     ],
-    content,
+    content: content || "",
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
     },
@@ -64,32 +73,131 @@ export function RichTextEditor({ content, onChange, placeholder }: RichTextEdito
     },
   });
 
+  // Sync content when it changes externally
+  useEffect(() => {
+    if (editor && content !== editor.getHTML()) {
+      editor.commands.setContent(content || "");
+    }
+  }, [content, editor]);
+
   if (!editor) {
-    return null;
+    return (
+      <div className="rounded-lg border bg-background">
+        <div className="h-12 border-b p-2 bg-muted/30 animate-pulse" />
+        <div className="min-h-[300px] p-4 bg-muted/10 animate-pulse" />
+      </div>
+    );
   }
 
   const addLink = () => {
-    const url = window.prompt("Enter URL:");
-    if (url) {
-      editor.chain().focus().setLink({ href: url }).run();
+    const previousUrl = editor.getAttributes("link").href;
+    const url = window.prompt("Enter URL:", previousUrl);
+    
+    if (url === null) {
+      return;
     }
+
+    if (url === "") {
+      editor.chain().focus().extendMarkRange("link").unsetLink().run();
+      return;
+    }
+
+    editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
   };
 
-  const addImage = () => {
+  const addImageFromUrl = () => {
     const url = window.prompt("Enter image URL:");
     if (url) {
       editor.chain().focus().setImage({ src: url }).run();
     }
   };
 
+  const handleImageUpload = async (file: File) => {
+    if (!storeId) {
+      // Fallback to base64 if no storeId
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const base64 = e.target?.result as string;
+        editor.chain().focus().setImage({ src: base64 }).run();
+      };
+      reader.readAsDataURL(file);
+      return;
+    }
+
+    try {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `${storeId}/pages/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("page-images")
+        .upload(filePath, file);
+
+      if (uploadError) {
+        // Fallback to base64 if upload fails
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const base64 = e.target?.result as string;
+          editor.chain().focus().setImage({ src: base64 }).run();
+        };
+        reader.readAsDataURL(file);
+        return;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("page-images")
+        .getPublicUrl(filePath);
+
+      editor.chain().focus().setImage({ src: publicUrl }).run();
+    } catch (error) {
+      console.error("Image upload error:", error);
+      // Fallback to base64
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const base64 = e.target?.result as string;
+        editor.chain().focus().setImage({ src: base64 }).run();
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith("image/")) {
+        toast({
+          title: "Invalid file type",
+          description: "Please select an image file.",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "File too large",
+          description: "Please select an image under 5MB.",
+          variant: "destructive",
+        });
+        return;
+      }
+      handleImageUpload(file);
+    }
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
   const ToolbarButton = ({
     onClick,
     isActive,
+    disabled,
     children,
     title,
   }: {
     onClick: () => void;
     isActive?: boolean;
+    disabled?: boolean;
     children: React.ReactNode;
     title: string;
   }) => (
@@ -97,11 +205,16 @@ export function RichTextEditor({ content, onChange, placeholder }: RichTextEdito
       type="button"
       variant="ghost"
       size="sm"
-      onClick={onClick}
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onClick();
+      }}
       title={title}
+      disabled={disabled}
       className={cn(
-        "h-8 w-8 p-0",
-        isActive && "bg-muted text-foreground"
+        "h-8 w-8 p-0 hover:bg-muted",
+        isActive && "bg-muted text-foreground ring-1 ring-border"
       )}
     >
       {children}
@@ -109,9 +222,9 @@ export function RichTextEditor({ content, onChange, placeholder }: RichTextEdito
   );
 
   return (
-    <div className="rounded-lg border bg-background">
+    <div className="rounded-lg border bg-background overflow-hidden">
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-0.5 border-b p-2">
+      <div className="flex flex-wrap items-center gap-0.5 border-b p-2 bg-muted/30">
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
           isActive={editor.isActive("heading", { level: 1 })}
@@ -139,21 +252,21 @@ export function RichTextEditor({ content, onChange, placeholder }: RichTextEdito
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleBold().run()}
           isActive={editor.isActive("bold")}
-          title="Bold"
+          title="Bold (Ctrl+B)"
         >
           <Bold className="h-4 w-4" />
         </ToolbarButton>
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleItalic().run()}
           isActive={editor.isActive("italic")}
-          title="Italic"
+          title="Italic (Ctrl+I)"
         >
           <Italic className="h-4 w-4" />
         </ToolbarButton>
         <ToolbarButton
           onClick={() => editor.chain().focus().toggleCode().run()}
           isActive={editor.isActive("code")}
-          title="Code"
+          title="Inline Code"
         >
           <Code className="h-4 w-4" />
         </ToolbarButton>
@@ -208,10 +321,23 @@ export function RichTextEditor({ content, onChange, placeholder }: RichTextEdito
 
         <div className="mx-1 h-6 w-px bg-border" />
 
-        <ToolbarButton onClick={addLink} isActive={editor.isActive("link")} title="Add Link">
+        <ToolbarButton 
+          onClick={addLink} 
+          isActive={editor.isActive("link")} 
+          title="Add/Edit Link"
+        >
           <LinkIcon className="h-4 w-4" />
         </ToolbarButton>
-        <ToolbarButton onClick={addImage} title="Add Image">
+        <ToolbarButton 
+          onClick={() => fileInputRef.current?.click()} 
+          title="Upload Image"
+        >
+          <Upload className="h-4 w-4" />
+        </ToolbarButton>
+        <ToolbarButton 
+          onClick={addImageFromUrl} 
+          title="Add Image from URL"
+        >
           <ImageIcon className="h-4 w-4" />
         </ToolbarButton>
 
@@ -219,17 +345,28 @@ export function RichTextEditor({ content, onChange, placeholder }: RichTextEdito
 
         <ToolbarButton
           onClick={() => editor.chain().focus().undo().run()}
-          title="Undo"
+          disabled={!editor.can().undo()}
+          title="Undo (Ctrl+Z)"
         >
           <Undo className="h-4 w-4" />
         </ToolbarButton>
         <ToolbarButton
           onClick={() => editor.chain().focus().redo().run()}
-          title="Redo"
+          disabled={!editor.can().redo()}
+          title="Redo (Ctrl+Y)"
         >
           <Redo className="h-4 w-4" />
         </ToolbarButton>
       </div>
+
+      {/* Hidden file input for image upload */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFileSelect}
+        className="hidden"
+      />
 
       {/* Editor Content */}
       <EditorContent editor={editor} />
