@@ -61,10 +61,21 @@ const navItems: NavItem[] = [
   { label: "Settings", icon: Settings, path: "/dashboard/settings" },
 ];
 
+const SIDEBAR_STORAGE_KEY = "dashboard-sidebar-collapsed";
+
 export default function DashboardSidebar({ storeName, storeSlug }: DashboardSidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    const stored = localStorage.getItem(SIDEBAR_STORAGE_KEY);
+    return stored === "true";
+  });
+
+  const handleCollapsedChange = (collapsed: boolean) => {
+    setIsCollapsed(collapsed);
+    localStorage.setItem(SIDEBAR_STORAGE_KEY, String(collapsed));
+  };
   
   // Initialize expanded menus based on current path
   const getInitialExpandedMenus = () => {
@@ -107,7 +118,7 @@ export default function DashboardSidebar({ storeName, storeSlug }: DashboardSide
           variant="ghost"
           size="icon"
           className="text-white hover:bg-white/10"
-          onClick={() => setIsCollapsed(!isCollapsed)}
+          onClick={() => handleCollapsedChange(!isCollapsed)}
         >
           <Menu className="h-5 w-5" />
         </Button>
@@ -213,7 +224,7 @@ export default function DashboardSidebar({ storeName, storeSlug }: DashboardSide
         {/* Collapse toggle (desktop) */}
         <div className="hidden border-t border-white/10 p-2 lg:block">
           <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
+            onClick={() => handleCollapsedChange(!isCollapsed)}
             className="flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm text-white/60 hover:bg-white/5 hover:text-white"
           >
             <ChevronLeft
@@ -231,7 +242,7 @@ export default function DashboardSidebar({ storeName, storeSlug }: DashboardSide
       {!isCollapsed && (
         <div
           className="fixed inset-0 z-30 bg-black/50 lg:hidden"
-          onClick={() => setIsCollapsed(true)}
+          onClick={() => handleCollapsedChange(true)}
         />
       )}
     </>
