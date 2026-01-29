@@ -1,11 +1,28 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.93.2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+// ==========================================
+// CORS CONFIGURATION - Restrict to allowed origins
+// ==========================================
+const ALLOWED_ORIGINS = [
+  "https://ignite-shop-easy.lovable.app",
+  "https://id-preview--ced711d0-f92e-475b-8942-ddd7a8cf855a.lovable.app",
+  "http://localhost:5173",
+  "http://localhost:8080",
+];
+
+function getCorsHeaders(origin: string | null): Record<string, string> {
+  const allowedOrigin = origin && ALLOWED_ORIGINS.some(allowed => 
+    origin === allowed || origin.endsWith('.lovable.app')
+  ) ? origin : ALLOWED_ORIGINS[0];
+  
+  return {
+    "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Headers":
+      "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+    "Access-Control-Allow-Credentials": "true",
+  };
+}
 
 // ==========================================
 // INPUT VALIDATION UTILITIES
@@ -64,7 +81,7 @@ function generateOTP(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-function createErrorResponse(message: string, status: number): Response {
+function createErrorResponse(message: string, status: number, corsHeaders: Record<string, string>): Response {
   return new Response(
     JSON.stringify({ error: message }),
     { status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -72,9 +89,29 @@ function createErrorResponse(message: string, status: number): Response {
 }
 
 const handler = async (req: Request): Promise<Response> => {
+  const origin = req.headers.get("origin");
+  const corsHeaders = getCorsHeaders(origin);
+  
+  // Validate origin for non-OPTIONS requests
+  const isValidOrigin = origin && (
+    ALLOWED_ORIGINS.includes(origin) || 
+    origin.endsWith('.lovable.app')
+  );
+  
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
+    if (!isValidOrigin && origin) {
+      return new Response("Forbidden", { status: 403 });
+    }
     return new Response("ok", { headers: corsHeaders });
+  }
+
+  // Reject requests from invalid origins (except when no origin - e.g., server-side calls)
+  if (origin && !isValidOrigin) {
+    return new Response(
+      JSON.stringify({ error: "Invalid origin" }),
+      { status: 403, headers: { "Content-Type": "application/json" } }
+    );
   }
 
   try {
@@ -87,29 +124,29 @@ const handler = async (req: Request): Promise<Response> => {
     try {
       body = await req.json();
     } catch {
-      return createErrorResponse("Invalid JSON body", 400);
+      return createErrorResponse("Invalid JSON body", 400, corsHeaders);
     }
 
     // Validate body is an object
     if (!body || typeof body !== "object" || Array.isArray(body)) {
-      return createErrorResponse("Request body must be an object", 400);
+      return createErrorResponse("Request body must be an object", 400, corsHeaders);
     }
 
     const requestBody = body as Record<string, unknown>;
 
     // Validate action
     if (!isValidAction(requestBody.action)) {
-      return createErrorResponse("Invalid action. Must be 'send_otp' or 'verify_otp'", 400);
+      return createErrorResponse("Invalid action. Must be 'send_otp' or 'verify_otp'", 400, corsHeaders);
     }
 
     // Validate store_id
     if (!isValidUUID(requestBody.store_id)) {
-      return createErrorResponse("Invalid store_id format", 400);
+      return createErrorResponse("Invalid store_id format", 400, corsHeaders);
     }
 
     // Validate otp_type
     if (!isValidOTPType(requestBody.otp_type)) {
-      return createErrorResponse("Invalid otp_type. Must be 'email' or 'phone'", 400);
+      return createErrorResponse("Invalid otp_type. Must be 'email' or 'phone'", 400, corsHeaders);
     }
 
     const action = requestBody.action as "send_otp" | "verify_otp";
@@ -126,11 +163,11 @@ const handler = async (req: Request): Promise<Response> => {
       // Validate email or phone based on otp_type
       if (otp_type === "email") {
         if (!isValidEmail(email)) {
-          return createErrorResponse("Invalid email format", 400);
+          return createErrorResponse("Invalid email format", 400, corsHeaders);
         }
       } else {
         if (!isValidPhone(phone)) {
-          return createErrorResponse("Invalid phone format. Use E.164 format (e.g., +1234567890)", 400);
+          return createErrorResponse("Invalid phone format. Use E.164 format (e.g., +1234567890)", 400, corsHeaders);
         }
       }
 
@@ -147,7 +184,7 @@ const handler = async (req: Request): Promise<Response> => {
         .limit(1);
 
       if (recentOtps && recentOtps.length > 0) {
-        return createErrorResponse("Please wait 60 seconds before requesting another OTP", 429);
+        return createErrorResponse("Please wait 60 seconds before requesting another OTP", 429, corsHeaders);
       }
 
       // Check if customer exists or create new one
@@ -182,7 +219,7 @@ const handler = async (req: Request): Promise<Response> => {
 
         if (createError) {
           console.error("Error creating customer:", createError);
-          return createErrorResponse("Failed to create customer", 500);
+          return createErrorResponse("Failed to create customer", 500, corsHeaders);
         }
 
         customerId = newCustomer.id;
@@ -213,7 +250,7 @@ const handler = async (req: Request): Promise<Response> => {
 
       if (otpError) {
         console.error("Error storing OTP:", otpError);
-        return createErrorResponse("Failed to generate OTP", 500);
+        return createErrorResponse("Failed to generate OTP", 500, corsHeaders);
       }
 
       // In production, send OTP via email/SMS service
@@ -245,20 +282,20 @@ const handler = async (req: Request): Promise<Response> => {
       
       // Validate OTP format
       if (!isValidOTP(otp_code)) {
-        return createErrorResponse("Invalid OTP format. Must be 6 digits", 400);
+        return createErrorResponse("Invalid OTP format. Must be 6 digits", 400, corsHeaders);
       }
 
       // Validate optional fields
       if (customer_id !== undefined && !isValidUUID(customer_id)) {
-        return createErrorResponse("Invalid customer_id format", 400);
+        return createErrorResponse("Invalid customer_id format", 400, corsHeaders);
       }
       
       if (otp_type === "email" && email !== undefined && !isValidEmail(email)) {
-        return createErrorResponse("Invalid email format", 400);
+        return createErrorResponse("Invalid email format", 400, corsHeaders);
       }
       
       if (otp_type === "phone" && phone !== undefined && !isValidPhone(phone)) {
-        return createErrorResponse("Invalid phone format", 400);
+        return createErrorResponse("Invalid phone format", 400, corsHeaders);
       }
 
       const identifier = otp_type === "email" ? email : phone;
@@ -273,7 +310,7 @@ const handler = async (req: Request): Promise<Response> => {
         .limit(6);
 
       if (recentAttempts && recentAttempts.length >= 5) {
-        return createErrorResponse("Too many attempts. Please request a new OTP", 429);
+        return createErrorResponse("Too many attempts. Please request a new OTP", 429, corsHeaders);
       }
 
       // Find OTP record
@@ -294,12 +331,12 @@ const handler = async (req: Request): Promise<Response> => {
       const { data: otpRecord, error: otpFetchError } = await otpQuery.maybeSingle();
 
       if (otpFetchError || !otpRecord) {
-        return createErrorResponse("Invalid or expired OTP", 400);
+        return createErrorResponse("Invalid or expired OTP", 400, corsHeaders);
       }
 
       // Check expiry
       if (new Date(otpRecord.expires_at) < new Date()) {
-        return createErrorResponse("OTP has expired", 400);
+        return createErrorResponse("OTP has expired", 400, corsHeaders);
       }
 
       // Mark OTP as verified
@@ -336,11 +373,11 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    return createErrorResponse("Invalid action", 400);
+    return createErrorResponse("Invalid action", 400, corsHeaders);
   } catch (error: unknown) {
     console.error("Error in customer-auth function:", error);
     const message = error instanceof Error ? error.message : "Internal server error";
-    return createErrorResponse(message, 500);
+    return createErrorResponse(message, 500, corsHeaders);
   }
 };
 
