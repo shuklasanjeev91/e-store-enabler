@@ -46,6 +46,7 @@ export default function ElegantTheme({ store, products }: ElegantThemeProps) {
     setIsAuthOpen,
     customer,
     categories,
+    pages,
   } = useStorefront();
 
   const [filters, setFilters] = useState<FilterState>({
@@ -213,9 +214,20 @@ export default function ElegantTheme({ store, products }: ElegantThemeProps) {
             <div>
               <h4 className="text-sm uppercase tracking-[0.2em]">Customer Care</h4>
               <ul className="mt-2 space-y-2 text-sm text-stone-600">
-                <li><a href="#">Contact Us</a></li>
-                <li><a href="#">Shipping & Returns</a></li>
-                <li><a href="#">FAQ</a></li>
+                {pages.slice(0, 4).map((page) => (
+                  <li key={page.id}>
+                    <a href={`/store/${store.slug}/page/${page.slug}`} className="hover:text-stone-900">
+                      {page.title}
+                    </a>
+                  </li>
+                ))}
+                {pages.length === 0 && (
+                  <>
+                    <li><a href="#">Contact Us</a></li>
+                    <li><a href="#">Shipping & Returns</a></li>
+                    <li><a href="#">FAQ</a></li>
+                  </>
+                )}
               </ul>
             </div>
             <div>

@@ -46,6 +46,7 @@ export default function ModernTheme({ store, products }: ModernThemeProps) {
     setIsAuthOpen,
     customer,
     categories,
+    pages,
   } = useStorefront();
 
   const [filters, setFilters] = useState<FilterState>({
@@ -254,11 +255,22 @@ export default function ModernTheme({ store, products }: ModernThemeProps) {
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold">Support</h4>
+              <h4 className="font-semibold">Information</h4>
               <ul className="mt-2 space-y-2 text-sm text-zinc-600">
-                <li><a href="#">FAQ</a></li>
-                <li><a href="#">Shipping</a></li>
-                <li><a href="#">Returns</a></li>
+                {pages.slice(0, 4).map((page) => (
+                  <li key={page.id}>
+                    <a href={`/store/${store.slug}/page/${page.slug}`} className="hover:text-zinc-900">
+                      {page.title}
+                    </a>
+                  </li>
+                ))}
+                {pages.length === 0 && (
+                  <>
+                    <li><a href="#">FAQ</a></li>
+                    <li><a href="#">Shipping</a></li>
+                    <li><a href="#">Returns</a></li>
+                  </>
+                )}
               </ul>
             </div>
             <div>
