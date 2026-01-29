@@ -133,9 +133,9 @@ export default function BaseStorefrontTheme({ store, products, config }: BaseSto
     backgroundSecondary: bgStyles.backgroundSecondary,
     backgroundTertiary: config.colors.backgroundTertiary,
     foregroundSubtle: config.colors.foregroundSubtle,
-    primary: config.colors.primary,
+    primary: themeSettings.primary_color || config.colors.primary,
     primaryForeground: config.colors.primaryForeground,
-    accent: config.colors.accent,
+    accent: themeSettings.accent_color || config.colors.accent,
     accentForeground: config.colors.accentForeground,
   } : config.colors;
 

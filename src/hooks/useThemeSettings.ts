@@ -15,6 +15,8 @@ export interface ThemeSettings {
   show_sticky_buy_button: boolean;
   show_add_to_bag_button: boolean;
   custom_css: string | null;
+  primary_color: string | null;
+  accent_color: string | null;
 }
 
 export interface Banner {
