@@ -44,6 +44,7 @@ export default function Dashboard() {
       const { data: storeData, error: storeError } = await supabase
         .from("stores")
         .select("*")
+        .eq("user_id", user!.id)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
