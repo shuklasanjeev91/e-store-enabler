@@ -52,6 +52,8 @@ interface ThemeSettings {
   show_add_to_bag_button: boolean;
   custom_css: string | null;
   show_sticky_buy_button: boolean;
+  primary_color: string | null;
+  accent_color: string | null;
 }
 
 interface Banner {
@@ -91,7 +93,20 @@ const defaultSettings: Omit<ThemeSettings, "store_id"> = {
   show_add_to_bag_button: true,
   custom_css: null,
   show_sticky_buy_button: false,
+  primary_color: null,
+  accent_color: null,
 };
+
+const COLOR_PRESETS = [
+  { name: "Teal", primary: "#0891b2", accent: "#ea580c" },
+  { name: "Violet", primary: "#7c3aed", accent: "#f97316" },
+  { name: "Rose", primary: "#e11d48", accent: "#0ea5e9" },
+  { name: "Emerald", primary: "#059669", accent: "#f59e0b" },
+  { name: "Blue", primary: "#2563eb", accent: "#ec4899" },
+  { name: "Amber", primary: "#d97706", accent: "#6366f1" },
+  { name: "Indigo", primary: "#4f46e5", accent: "#10b981" },
+  { name: "Slate", primary: "#475569", accent: "#f43f5e" },
+];
 
 export default function CustomizeTheme() {
   const { user, isLoading } = useAuth();
@@ -199,6 +214,8 @@ export default function CustomizeTheme() {
             show_add_to_bag_button: settings.show_add_to_bag_button,
             custom_css: settings.custom_css,
             show_sticky_buy_button: settings.show_sticky_buy_button,
+            primary_color: settings.primary_color,
+            accent_color: settings.accent_color,
           })
           .eq("id", settings.id);
 
@@ -219,6 +236,8 @@ export default function CustomizeTheme() {
             show_add_to_bag_button: settings.show_add_to_bag_button,
             custom_css: settings.custom_css,
             show_sticky_buy_button: settings.show_sticky_buy_button,
+            primary_color: settings.primary_color,
+            accent_color: settings.accent_color,
           })
           .select()
           .single();
@@ -351,6 +370,7 @@ export default function CustomizeTheme() {
 
   const sections = [
     { id: "background", label: "Background" },
+    { id: "colors", label: "Colors" },
     { id: "header", label: "Header & Favicon" },
     { id: "banners", label: "Banners" },
     { id: "sections", label: "Sections" },
@@ -500,6 +520,159 @@ export default function CustomizeTheme() {
                           </div>
                         </button>
                       ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Colors Section */}
+                {activeSection === "colors" && (
+                  <div className="space-y-6">
+                    <div>
+                      <h2 className="text-lg font-semibold">Color palette</h2>
+                      <p className="text-sm text-muted-foreground">
+                        Customize your store's primary and accent colors to match your brand identity.
+                      </p>
+                    </div>
+
+                    {/* Color Presets */}
+                    <div className="space-y-3">
+                      <Label>Quick presets</Label>
+                      <div className="grid grid-cols-4 gap-3">
+                        {COLOR_PRESETS.map((preset) => (
+                          <button
+                            key={preset.name}
+                            onClick={() => updateSettings({ 
+                              primary_color: preset.primary, 
+                              accent_color: preset.accent 
+                            })}
+                            className={cn(
+                              "flex flex-col items-center gap-2 rounded-lg border-2 p-3 transition-all hover:border-primary/50",
+                              settings.primary_color === preset.primary && settings.accent_color === preset.accent
+                                ? "border-primary ring-2 ring-primary/20"
+                                : "border-border"
+                            )}
+                          >
+                            <div className="flex gap-1">
+                              <div 
+                                className="h-6 w-6 rounded-full border"
+                                style={{ backgroundColor: preset.primary }}
+                              />
+                              <div 
+                                className="h-6 w-6 rounded-full border"
+                                style={{ backgroundColor: preset.accent }}
+                              />
+                            </div>
+                            <span className="text-xs font-medium">{preset.name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Primary Color */}
+                    <div className="space-y-3">
+                      <Label>Primary color</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Used for buttons, links, and interactive elements.
+                      </p>
+                      <div className="flex items-center gap-4">
+                        <div className="relative">
+                          <input
+                            type="color"
+                            value={settings.primary_color || "#0891b2"}
+                            onChange={(e) => updateSettings({ primary_color: e.target.value })}
+                            className="h-12 w-12 cursor-pointer rounded-lg border-2 border-border"
+                          />
+                        </div>
+                        <Input
+                          value={settings.primary_color || "#0891b2"}
+                          onChange={(e) => updateSettings({ primary_color: e.target.value })}
+                          placeholder="#0891b2"
+                          className="w-32 font-mono uppercase"
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => updateSettings({ primary_color: null })}
+                        >
+                          Reset
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Accent Color */}
+                    <div className="space-y-3">
+                      <Label>Accent color</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Used for highlights, badges, and notifications.
+                      </p>
+                      <div className="flex items-center gap-4">
+                        <div className="relative">
+                          <input
+                            type="color"
+                            value={settings.accent_color || "#ea580c"}
+                            onChange={(e) => updateSettings({ accent_color: e.target.value })}
+                            className="h-12 w-12 cursor-pointer rounded-lg border-2 border-border"
+                          />
+                        </div>
+                        <Input
+                          value={settings.accent_color || "#ea580c"}
+                          onChange={(e) => updateSettings({ accent_color: e.target.value })}
+                          placeholder="#ea580c"
+                          className="w-32 font-mono uppercase"
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => updateSettings({ accent_color: null })}
+                        >
+                          Reset
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Preview */}
+                    <div className="space-y-3">
+                      <Label>Preview</Label>
+                      <div className="rounded-lg border p-6">
+                        <div className="flex flex-wrap gap-4">
+                          <button
+                            className="rounded-lg px-6 py-2.5 font-medium text-white transition-all"
+                            style={{ backgroundColor: settings.primary_color || "#0891b2" }}
+                          >
+                            Primary Button
+                          </button>
+                          <button
+                            className="rounded-lg border-2 px-6 py-2.5 font-medium transition-all"
+                            style={{ 
+                              borderColor: settings.primary_color || "#0891b2",
+                              color: settings.primary_color || "#0891b2"
+                            }}
+                          >
+                            Outline Button
+                          </button>
+                          <span
+                            className="rounded-full px-3 py-1 text-sm font-medium text-white"
+                            style={{ backgroundColor: settings.accent_color || "#ea580c" }}
+                          >
+                            Sale Badge
+                          </span>
+                        </div>
+                        <div className="mt-4 flex items-center gap-4">
+                          <a
+                            href="#"
+                            className="text-sm font-medium underline-offset-4 hover:underline"
+                            style={{ color: settings.primary_color || "#0891b2" }}
+                          >
+                            Shop now →
+                          </a>
+                          <span
+                            className="text-sm"
+                            style={{ color: settings.accent_color || "#ea580c" }}
+                          >
+                            ★ 4.9 rating
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
