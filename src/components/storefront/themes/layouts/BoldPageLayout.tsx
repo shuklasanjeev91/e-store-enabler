@@ -1,4 +1,4 @@
-import { ShoppingBag, Search, Menu, X, Heart, User, Home, ChevronRight, Clock, Zap } from "lucide-react";
+import { ShoppingBag, Search, Menu, X, Heart, User, Home, ChevronRight, Zap } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useStorefront } from "@/contexts/StorefrontContext";
@@ -6,7 +6,6 @@ import CartDrawer from "@/components/storefront/CartDrawer";
 import WishlistDrawer from "@/components/storefront/WishlistDrawer";
 import CustomerAuthModal from "@/components/storefront/CustomerAuthModal";
 import { Badge } from "@/components/ui/badge";
-import { format } from "date-fns";
 
 interface Store {
   id: string;
@@ -159,21 +158,9 @@ export default function BoldPageLayout({ store, page }: BoldPageLayoutProps) {
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
           {/* Page Header */}
           <div className="mb-12 lg:mb-16">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-yellow-400">
-                <Zap className="h-5 w-5 text-slate-950" />
-              </div>
-              <span className="text-sm font-bold uppercase tracking-widest text-yellow-400">Page</span>
-            </div>
             <h1 className="text-4xl font-black uppercase tracking-tight text-white sm:text-5xl lg:text-6xl">
               {page.title}
             </h1>
-            {page.updated_at && (
-              <div className="mt-6 flex items-center gap-2 text-sm font-medium uppercase tracking-wider text-white/50">
-                <Clock className="h-4 w-4" />
-                <span>Updated {format(new Date(page.updated_at), "MMMM d, yyyy")}</span>
-              </div>
-            )}
           </div>
 
           {/* Content */}
