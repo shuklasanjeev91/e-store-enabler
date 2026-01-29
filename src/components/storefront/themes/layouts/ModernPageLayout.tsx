@@ -1,4 +1,4 @@
-import { ShoppingBag, Search, Menu, X, Heart, User, Home, ChevronRight, Clock, FileText } from "lucide-react";
+import { ShoppingBag, Search, Menu, X, Heart, User, Home, ChevronRight } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useStorefront } from "@/contexts/StorefrontContext";
@@ -6,7 +6,6 @@ import CartDrawer from "@/components/storefront/CartDrawer";
 import WishlistDrawer from "@/components/storefront/WishlistDrawer";
 import CustomerAuthModal from "@/components/storefront/CustomerAuthModal";
 import { Badge } from "@/components/ui/badge";
-import { format } from "date-fns";
 
 interface Store {
   id: string;
@@ -164,21 +163,9 @@ export default function ModernPageLayout({ store, page }: ModernPageLayoutProps)
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8 lg:py-16">
           {/* Page Header */}
           <div className="mb-8 lg:mb-12">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg shadow-blue-500/25">
-                <FileText className="h-5 w-5 text-white" />
-              </div>
-              <span className="text-sm font-semibold uppercase tracking-wider text-blue-600">Page</span>
-            </div>
             <h1 className="text-3xl font-bold tracking-tight text-zinc-900 sm:text-4xl lg:text-5xl">
               {page.title}
             </h1>
-            {page.updated_at && (
-              <div className="mt-4 flex items-center gap-2 text-sm text-zinc-500">
-                <Clock className="h-4 w-4" />
-                <span>Last updated {format(new Date(page.updated_at), "MMMM d, yyyy")}</span>
-              </div>
-            )}
           </div>
 
           {/* Content */}
@@ -195,7 +182,7 @@ export default function ModernPageLayout({ store, page }: ModernPageLayoutProps)
             ) : (
               <div className="flex min-h-[200px] flex-col items-center justify-center rounded-2xl border-2 border-dashed border-zinc-300 bg-white p-8 text-center">
                 <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-zinc-100 mb-4">
-                  <FileText className="h-8 w-8 text-zinc-400" />
+                  <Home className="h-8 w-8 text-zinc-400" />
                 </div>
                 <p className="text-lg font-semibold text-zinc-600">No content yet</p>
                 <p className="mt-2 text-sm text-zinc-400">This page will be filled with amazing content soon.</p>

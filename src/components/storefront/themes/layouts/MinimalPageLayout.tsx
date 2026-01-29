@@ -1,4 +1,4 @@
-import { ShoppingBag, Search, Menu, X, Heart, User, Home, ChevronRight, Clock } from "lucide-react";
+import { ShoppingBag, Search, Menu, X, Heart, User, Home, ChevronRight } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useStorefront } from "@/contexts/StorefrontContext";
@@ -6,7 +6,6 @@ import CartDrawer from "@/components/storefront/CartDrawer";
 import WishlistDrawer from "@/components/storefront/WishlistDrawer";
 import CustomerAuthModal from "@/components/storefront/CustomerAuthModal";
 import { Badge } from "@/components/ui/badge";
-import { format } from "date-fns";
 
 interface Store {
   id: string;
@@ -168,12 +167,6 @@ export default function MinimalPageLayout({ store, page }: MinimalPageLayoutProp
             <h1 className="text-3xl font-light tracking-tight text-gray-900 sm:text-4xl lg:text-5xl">
               {page.title}
             </h1>
-            {page.updated_at && (
-              <div className="mt-4 flex items-center gap-1.5 text-sm text-gray-500">
-                <Clock className="h-4 w-4" />
-                <span>Updated {format(new Date(page.updated_at), "MMMM d, yyyy")}</span>
-              </div>
-            )}
           </div>
 
           {/* Content */}
