@@ -10,6 +10,7 @@ import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
 import Appearance from "./pages/Appearance";
+import CustomizeTheme from "./pages/CustomizeTheme";
 import Pages from "./pages/Pages";
 import PageEditor from "./pages/PageEditor";
 import Storefront from "./pages/Storefront";
@@ -35,6 +36,7 @@ const App = () => (
               <Route path="/onboarding" element={<Onboarding />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/dashboard/appearance" element={<Appearance />} />
+              <Route path="/dashboard/appearance/customize" element={<CustomizeTheme />} />
               <Route path="/dashboard/appearance/pages" element={<Pages />} />
               <Route path="/dashboard/appearance/pages/:pageId" element={<PageEditor />} />
               <Route path="/store/:slug" element={<Storefront />} />

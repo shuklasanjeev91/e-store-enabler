@@ -659,6 +659,112 @@ export type Database = {
         }
         Relationships: []
       }
+      store_banners: {
+        Row: {
+          created_at: string
+          device_type: string
+          id: string
+          image_url: string
+          is_active: boolean
+          link_url: string | null
+          sort_order: number
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          device_type?: string
+          id?: string
+          image_url: string
+          is_active?: boolean
+          link_url?: string | null
+          sort_order?: number
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          device_type?: string
+          id?: string
+          image_url?: string
+          is_active?: boolean
+          link_url?: string | null
+          sort_order?: number
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_banners_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_theme_settings: {
+        Row: {
+          background_mode: string
+          created_at: string
+          custom_css: string | null
+          favicon_url: string | null
+          font_family: string
+          id: string
+          show_add_to_bag_button: boolean
+          show_brand_story: boolean
+          show_featured_product: boolean
+          show_image_overlay: boolean
+          show_sticky_buy_button: boolean
+          show_store_name: boolean
+          show_testimonials: boolean
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          background_mode?: string
+          created_at?: string
+          custom_css?: string | null
+          favicon_url?: string | null
+          font_family?: string
+          id?: string
+          show_add_to_bag_button?: boolean
+          show_brand_story?: boolean
+          show_featured_product?: boolean
+          show_image_overlay?: boolean
+          show_sticky_buy_button?: boolean
+          show_store_name?: boolean
+          show_testimonials?: boolean
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          background_mode?: string
+          created_at?: string
+          custom_css?: string | null
+          favicon_url?: string | null
+          font_family?: string
+          id?: string
+          show_add_to_bag_button?: boolean
+          show_brand_story?: boolean
+          show_featured_product?: boolean
+          show_image_overlay?: boolean
+          show_sticky_buy_button?: boolean
+          show_store_name?: boolean
+          show_testimonials?: boolean
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_theme_settings_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: true
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stores: {
         Row: {
           created_at: string
