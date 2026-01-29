@@ -6,7 +6,9 @@ import MinimalTheme from "@/components/storefront/themes/MinimalTheme";
 import BoldTheme from "@/components/storefront/themes/BoldTheme";
 import ElegantTheme from "@/components/storefront/themes/ElegantTheme";
 import ModernTheme from "@/components/storefront/themes/ModernTheme";
+import BaseStorefrontTheme from "@/components/storefront/themes/BaseStorefrontTheme";
 import { getThemeLayout, type ThemeId } from "@/components/storefront/themes";
+import { getThemeConfig } from "@/components/storefront/themes/config";
 
 interface StoreData {
   id: string;
@@ -97,7 +99,15 @@ export default function Storefront() {
     );
   }
 
-  // Get the layout type for the theme
+  // Try to get category-optimized theme config first
+  const themeConfig = getThemeConfig(store.theme);
+  
+  if (themeConfig) {
+    // Use the new category-optimized BaseStorefrontTheme
+    return <BaseStorefrontTheme store={store} products={products} config={themeConfig} />;
+  }
+
+  // Fallback to legacy layout-based themes
   const layout = getThemeLayout(store.theme as ThemeId);
   const themeProps = { store, products };
 
