@@ -516,6 +516,7 @@ export type Database = {
           created_at: string
           id: string
           meta_description: string | null
+          meta_keywords: string | null
           meta_title: string | null
           og_image_url: string | null
           slug: string
@@ -529,6 +530,7 @@ export type Database = {
           created_at?: string
           id?: string
           meta_description?: string | null
+          meta_keywords?: string | null
           meta_title?: string | null
           og_image_url?: string | null
           slug: string
@@ -542,6 +544,7 @@ export type Database = {
           created_at?: string
           id?: string
           meta_description?: string | null
+          meta_keywords?: string | null
           meta_title?: string | null
           og_image_url?: string | null
           slug?: string

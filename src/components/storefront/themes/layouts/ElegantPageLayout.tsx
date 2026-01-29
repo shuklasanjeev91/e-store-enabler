@@ -1,6 +1,6 @@
-import { ShoppingBag, Search, Menu, X, Heart, User, ArrowLeft, Clock } from "lucide-react";
+import { ShoppingBag, Search, Menu, X, Heart, User, Home, ChevronRight, Clock } from "lucide-react";
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useStorefront } from "@/contexts/StorefrontContext";
 import CartDrawer from "@/components/storefront/CartDrawer";
 import WishlistDrawer from "@/components/storefront/WishlistDrawer";
@@ -43,6 +43,7 @@ export default function ElegantPageLayout({ store, page }: ElegantPageLayoutProp
     setIsWishlistOpen,
     setIsAuthOpen,
     customer,
+    pages,
   } = useStorefront();
 
   useEffect(() => {
@@ -54,17 +55,32 @@ export default function ElegantPageLayout({ store, page }: ElegantPageLayoutProp
     <div className="flex min-h-screen flex-col bg-stone-50 text-stone-900" style={{ fontFamily: "'Cormorant Garamond', serif" }}>
       {/* Header */}
       <header className="sticky top-0 z-50 bg-stone-50/95 backdrop-blur supports-[backdrop-filter]:bg-stone-50/80">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-20 items-center justify-between border-b border-stone-200">
             <button className="p-2 md:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
               {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
             
-            <a href={`/store/${store.slug}`} className="absolute left-1/2 -translate-x-1/2 text-center">
+            <Link to={`/store/${store.slug}`} className="absolute left-1/2 -translate-x-1/2 text-center md:static md:translate-x-0">
               <span className="text-2xl font-light tracking-[0.3em] transition-colors hover:text-stone-600">{store.name.toUpperCase()}</span>
-            </a>
+            </Link>
+
+            <nav className="hidden items-center gap-8 md:flex">
+              <Link to={`/store/${store.slug}`} className="text-sm uppercase tracking-[0.15em] text-stone-600 hover:text-stone-900">
+                Collection
+              </Link>
+              {pages.slice(0, 3).map((p) => (
+                <Link
+                  key={p.id}
+                  to={`/store/${store.slug}/page/${p.slug}`}
+                  className={`text-sm uppercase tracking-[0.15em] transition-colors ${p.slug === page.slug ? "text-stone-900 border-b border-amber-600" : "text-stone-600 hover:text-stone-900"}`}
+                >
+                  {p.title}
+                </Link>
+              ))}
+            </nav>
             
-            <div className="ml-auto flex items-center gap-3">
+            <div className="flex items-center gap-3">
               <button className="rounded-full p-2.5 text-stone-500 transition-colors hover:bg-stone-100 hover:text-stone-900">
                 <Search className="h-5 w-5" />
               </button>
@@ -104,49 +120,71 @@ export default function ElegantPageLayout({ store, page }: ElegantPageLayoutProp
             Welcome back, {customer.name || customer.email || customer.phone}
           </div>
         )}
+        {/* Mobile menu */}
+        {mobileMenuOpen && (
+          <div className="border-b border-stone-200 bg-stone-50 p-4 md:hidden">
+            <nav className="flex flex-col gap-3">
+              <Link to={`/store/${store.slug}`} className="text-sm uppercase tracking-[0.15em] text-stone-600">Collection</Link>
+              {pages.map((p) => (
+                <Link
+                  key={p.id}
+                  to={`/store/${store.slug}/page/${p.slug}`}
+                  className="text-sm uppercase tracking-[0.15em] text-stone-600"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {p.title}
+                </Link>
+              ))}
+            </nav>
+          </div>
+        )}
       </header>
 
-      {/* Hero Section */}
-      <div className="relative overflow-hidden border-b border-stone-200 bg-gradient-to-b from-stone-100 to-stone-50">
-        <div className="absolute inset-0 opacity-30">
-          <div className="absolute inset-0" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23a8a29e' fill-opacity='0.15'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")" }} />
-        </div>
-        <div className="relative mx-auto max-w-4xl px-4 py-20 text-center sm:px-6 sm:py-28 lg:px-8 lg:py-32">
-          <button
-            onClick={() => navigate(`/store/${store.slug}`)}
-            className="mb-10 inline-flex items-center gap-2 text-sm uppercase tracking-[0.2em] text-stone-500 transition-colors hover:text-stone-900"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Return to Collection
-          </button>
-          <h1 className="text-4xl font-light tracking-wide text-stone-900 sm:text-5xl lg:text-6xl">
-            {page.title}
-          </h1>
-          <div className="mx-auto mt-6 h-px w-32 bg-gradient-to-r from-transparent via-amber-600 to-transparent" />
-          {page.updated_at && (
-            <div className="mt-6 flex items-center justify-center gap-1.5 text-sm uppercase tracking-widest text-stone-500">
-              <Clock className="h-3.5 w-3.5" />
-              <span>{format(new Date(page.updated_at), "MMMM d, yyyy")}</span>
-            </div>
-          )}
+      {/* Breadcrumb */}
+      <div className="border-b border-stone-200 bg-stone-100/50">
+        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
+          <nav className="flex items-center gap-3 text-sm uppercase tracking-[0.15em]">
+            <Link
+              to={`/store/${store.slug}`}
+              className="flex items-center gap-1.5 text-stone-500 hover:text-stone-900 transition-colors"
+            >
+              <Home className="h-4 w-4" />
+              <span>Home</span>
+            </Link>
+            <ChevronRight className="h-4 w-4 text-stone-400" />
+            <span className="text-stone-900">{page.title}</span>
+          </nav>
         </div>
       </div>
 
-      {/* Page Content */}
+      {/* Page Content - Full Width */}
       <main className="flex-1">
-        <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
-          <article>
+        <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
+          {/* Page Header */}
+          <div className="mb-12 text-center lg:mb-16">
+            <h1 className="text-4xl font-light tracking-wide text-stone-900 sm:text-5xl lg:text-6xl">
+              {page.title}
+            </h1>
+            <div className="mx-auto mt-6 h-px w-24 bg-gradient-to-r from-transparent via-amber-600 to-transparent" />
+            {page.updated_at && (
+              <div className="mt-4 flex items-center justify-center gap-1.5 text-sm uppercase tracking-widest text-stone-500">
+                <Clock className="h-3.5 w-3.5" />
+                <span>{format(new Date(page.updated_at), "MMMM d, yyyy")}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Content */}
+          <article className="w-full">
             {page.content ? (
               <div
-                className="prose prose-stone prose-lg mx-auto max-w-none prose-headings:font-light prose-headings:tracking-wide prose-p:leading-loose prose-a:text-amber-700 prose-a:no-underline prose-a:border-b prose-a:border-amber-700/30 hover:prose-a:border-amber-700 prose-blockquote:border-l-amber-600 prose-blockquote:italic prose-img:rounded-lg"
+                className="prose prose-stone prose-lg mx-auto max-w-none lg:prose-xl prose-headings:font-light prose-headings:tracking-wide prose-p:leading-loose prose-a:text-amber-700 prose-a:no-underline prose-a:border-b prose-a:border-amber-700/30 hover:prose-a:border-amber-700 prose-blockquote:border-l-amber-600 prose-blockquote:italic prose-img:rounded-lg prose-img:w-full"
                 dangerouslySetInnerHTML={{ __html: page.content }}
               />
             ) : (
-              <div className="flex min-h-[300px] flex-col items-center justify-center rounded-lg border border-stone-200 bg-stone-100/50 p-12 text-center">
-                <div className="mx-auto max-w-sm">
-                  <p className="text-lg font-light italic text-stone-500">This page awaits content</p>
-                  <p className="mt-2 text-sm text-stone-400">Beautiful words will appear here soon.</p>
-                </div>
+              <div className="flex min-h-[200px] flex-col items-center justify-center rounded-lg border border-stone-200 bg-stone-100/50 p-8 text-center">
+                <p className="text-lg font-light italic text-stone-500">This page awaits content</p>
+                <p className="mt-2 text-sm text-stone-400">Beautiful words will appear here soon.</p>
               </div>
             )}
           </article>
@@ -156,14 +194,32 @@ export default function ElegantPageLayout({ store, page }: ElegantPageLayoutProp
       {/* Footer */}
       <footer className="mt-auto border-t border-stone-200 bg-stone-100">
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
-          <div className="flex flex-col items-center gap-6">
-            <a href={`/store/${store.slug}`} className="text-xl font-light tracking-[0.2em] text-stone-900">
-              {store.name.toUpperCase()}
-            </a>
-            <div className="h-px w-16 bg-amber-600/50" />
-            <p className="text-sm uppercase tracking-[0.2em] text-stone-500">
-              © {new Date().getFullYear()} {store.name}
-            </p>
+          <div className="grid gap-8 md:grid-cols-3">
+            <div>
+              <Link to={`/store/${store.slug}`} className="text-xl font-light tracking-[0.2em] text-stone-900">
+                {store.name.toUpperCase()}
+              </Link>
+              {store.description && (
+                <p className="mt-3 text-sm italic text-stone-500">{store.description}</p>
+              )}
+            </div>
+            <div className="text-center">
+              <h3 className="text-sm uppercase tracking-[0.2em] text-stone-700">Explore</h3>
+              <nav className="mt-4 flex flex-col gap-2">
+                <Link to={`/store/${store.slug}`} className="text-sm text-stone-500 hover:text-stone-900">Collection</Link>
+                {pages.slice(0, 4).map((p) => (
+                  <Link key={p.id} to={`/store/${store.slug}/page/${p.slug}`} className="text-sm text-stone-500 hover:text-stone-900">
+                    {p.title}
+                  </Link>
+                ))}
+              </nav>
+            </div>
+            <div className="text-right">
+              <div className="h-px w-16 bg-amber-600/50 ml-auto mb-4" />
+              <p className="text-sm uppercase tracking-[0.2em] text-stone-500">
+                © {new Date().getFullYear()} {store.name}
+              </p>
+            </div>
           </div>
         </div>
       </footer>

@@ -1,6 +1,6 @@
-import { ShoppingBag, Search, Menu, X, Heart, User, ArrowLeft, Clock, Zap } from "lucide-react";
+import { ShoppingBag, Search, Menu, X, Heart, User, Home, ChevronRight, Clock, Zap } from "lucide-react";
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useStorefront } from "@/contexts/StorefrontContext";
 import CartDrawer from "@/components/storefront/CartDrawer";
 import WishlistDrawer from "@/components/storefront/WishlistDrawer";
@@ -43,6 +43,7 @@ export default function BoldPageLayout({ store, page }: BoldPageLayoutProps) {
     setIsWishlistOpen,
     setIsAuthOpen,
     customer,
+    pages,
   } = useStorefront();
 
   useEffect(() => {
@@ -55,9 +56,25 @@ export default function BoldPageLayout({ store, page }: BoldPageLayoutProps) {
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-white/10 bg-slate-950/95 backdrop-blur supports-[backdrop-filter]:bg-slate-950/80">
         <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <a href={`/store/${store.slug}`} className="text-2xl font-black uppercase tracking-wider transition-colors hover:text-yellow-400">
-            {store.name}
-          </a>
+          <div className="flex items-center gap-8">
+            <Link to={`/store/${store.slug}`} className="text-2xl font-black uppercase tracking-wider transition-colors hover:text-yellow-400">
+              {store.name}
+            </Link>
+            <nav className="hidden items-center gap-6 md:flex">
+              <Link to={`/store/${store.slug}`} className="text-sm font-bold uppercase tracking-wider text-white/70 hover:text-white">
+                Shop
+              </Link>
+              {pages.slice(0, 3).map((p) => (
+                <Link
+                  key={p.id}
+                  to={`/store/${store.slug}/page/${p.slug}`}
+                  className={`text-sm font-bold uppercase tracking-wider transition-colors ${p.slug === page.slug ? "text-yellow-400" : "text-white/70 hover:text-white"}`}
+                >
+                  {p.title}
+                </Link>
+              ))}
+            </nav>
+          </div>
           <div className="flex items-center gap-2">
             <button className="rounded-lg p-2.5 text-white/60 transition-colors hover:bg-white/10 hover:text-white">
               <Search className="h-5 w-5" />
@@ -100,53 +117,76 @@ export default function BoldPageLayout({ store, page }: BoldPageLayoutProps) {
             Welcome back, {customer.name || customer.email || customer.phone}!
           </div>
         )}
+        {/* Mobile menu */}
+        {mobileMenuOpen && (
+          <div className="border-t border-white/10 bg-slate-900 p-4 md:hidden">
+            <nav className="flex flex-col gap-3">
+              <Link to={`/store/${store.slug}`} className="text-sm font-bold uppercase tracking-wider text-white/70">Shop</Link>
+              {pages.map((p) => (
+                <Link
+                  key={p.id}
+                  to={`/store/${store.slug}/page/${p.slug}`}
+                  className="text-sm font-bold uppercase tracking-wider text-white/70"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {p.title}
+                </Link>
+              ))}
+            </nav>
+          </div>
+        )}
       </header>
 
-      {/* Hero Section */}
-      <div className="relative overflow-hidden border-b border-white/10 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900">
-        <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-yellow-400/10 via-transparent to-transparent" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-blue-500/10 via-transparent to-transparent" />
-        </div>
-        <div className="relative mx-auto max-w-5xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8 lg:py-28">
-          <button
-            onClick={() => navigate(`/store/${store.slug}`)}
-            className="mb-8 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-bold uppercase tracking-wider text-white/70 transition-all hover:bg-white/20 hover:text-white"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to store
-          </button>
-          <div className="flex items-center gap-3 mb-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-yellow-400">
-              <Zap className="h-5 w-5 text-slate-950" />
-            </div>
-            <span className="text-sm font-bold uppercase tracking-widest text-yellow-400">Page</span>
-          </div>
-          <h1 className="text-4xl font-black uppercase tracking-tight text-white sm:text-5xl lg:text-6xl xl:text-7xl">
-            {page.title}
-          </h1>
-          {page.updated_at && (
-            <div className="mt-6 flex items-center gap-2 text-sm font-medium uppercase tracking-wider text-white/50">
-              <Clock className="h-4 w-4" />
-              <span>Updated {format(new Date(page.updated_at), "MMMM d, yyyy")}</span>
-            </div>
-          )}
+      {/* Breadcrumb */}
+      <div className="border-b border-white/10 bg-slate-900/50">
+        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
+          <nav className="flex items-center gap-3 text-sm font-bold uppercase tracking-wider">
+            <Link
+              to={`/store/${store.slug}`}
+              className="flex items-center gap-1.5 text-white/50 hover:text-white transition-colors"
+            >
+              <Home className="h-4 w-4" />
+              <span>Home</span>
+            </Link>
+            <ChevronRight className="h-4 w-4 text-white/30" />
+            <span className="text-yellow-400">{page.title}</span>
+          </nav>
         </div>
       </div>
 
-      {/* Page Content */}
+      {/* Page Content - Full Width */}
       <main className="flex-1">
-        <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
-          <article>
+        <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
+          {/* Page Header */}
+          <div className="mb-12 lg:mb-16">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-yellow-400">
+                <Zap className="h-5 w-5 text-slate-950" />
+              </div>
+              <span className="text-sm font-bold uppercase tracking-widest text-yellow-400">Page</span>
+            </div>
+            <h1 className="text-4xl font-black uppercase tracking-tight text-white sm:text-5xl lg:text-6xl">
+              {page.title}
+            </h1>
+            {page.updated_at && (
+              <div className="mt-6 flex items-center gap-2 text-sm font-medium uppercase tracking-wider text-white/50">
+                <Clock className="h-4 w-4" />
+                <span>Updated {format(new Date(page.updated_at), "MMMM d, yyyy")}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Content */}
+          <article className="w-full">
             {page.content ? (
-              <div className="rounded-2xl border border-white/10 bg-slate-900/50 p-6 sm:p-10 lg:p-12">
+              <div className="rounded-2xl border border-white/10 bg-slate-900/50 p-6 sm:p-8 lg:p-12">
                 <div
-                  className="prose prose-invert prose-lg max-w-none prose-headings:font-black prose-headings:uppercase prose-headings:tracking-tight prose-p:leading-relaxed prose-a:text-yellow-400 prose-a:no-underline hover:prose-a:underline prose-strong:text-yellow-400 prose-blockquote:border-l-yellow-400 prose-code:text-yellow-400 prose-img:rounded-xl"
+                  className="prose prose-invert prose-lg lg:prose-xl max-w-none prose-headings:font-black prose-headings:uppercase prose-headings:tracking-tight prose-p:leading-relaxed prose-a:text-yellow-400 prose-a:no-underline hover:prose-a:underline prose-strong:text-yellow-400 prose-blockquote:border-l-yellow-400 prose-code:text-yellow-400 prose-img:rounded-xl prose-img:w-full"
                   dangerouslySetInnerHTML={{ __html: page.content }}
                 />
               </div>
             ) : (
-              <div className="flex min-h-[300px] flex-col items-center justify-center rounded-2xl border-2 border-dashed border-white/20 bg-slate-900/30 p-12 text-center">
+              <div className="flex min-h-[200px] flex-col items-center justify-center rounded-2xl border-2 border-dashed border-white/20 bg-slate-900/30 p-8 text-center">
                 <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-yellow-400/10 mb-4">
                   <Zap className="h-8 w-8 text-yellow-400" />
                 </div>
@@ -161,13 +201,32 @@ export default function BoldPageLayout({ store, page }: BoldPageLayoutProps) {
       {/* Footer */}
       <footer className="mt-auto border-t border-white/10 bg-slate-900">
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
-          <div className="flex flex-col items-center justify-between gap-6 sm:flex-row">
-            <a href={`/store/${store.slug}`} className="text-xl font-black uppercase tracking-wider text-white hover:text-yellow-400 transition-colors">
-              {store.name}
-            </a>
-            <p className="text-sm font-medium uppercase tracking-wider text-white/50">
-              © {new Date().getFullYear()} {store.name}. All rights reserved.
-            </p>
+          <div className="grid gap-8 md:grid-cols-3">
+            <div>
+              <Link to={`/store/${store.slug}`} className="text-xl font-black uppercase tracking-wider text-white hover:text-yellow-400 transition-colors">
+                {store.name}
+              </Link>
+              {store.description && (
+                <p className="mt-3 text-sm text-white/50">{store.description}</p>
+              )}
+            </div>
+            <div>
+              <h3 className="text-sm font-bold uppercase tracking-wider text-yellow-400">Links</h3>
+              <nav className="mt-4 flex flex-col gap-2">
+                <Link to={`/store/${store.slug}`} className="text-sm font-medium text-white/50 hover:text-white">Shop</Link>
+                {pages.slice(0, 4).map((p) => (
+                  <Link key={p.id} to={`/store/${store.slug}/page/${p.slug}`} className="text-sm font-medium text-white/50 hover:text-white">
+                    {p.title}
+                  </Link>
+                ))}
+              </nav>
+            </div>
+            <div className="text-right">
+              <p className="text-sm font-medium uppercase tracking-wider text-white/50">
+                © {new Date().getFullYear()} {store.name}
+              </p>
+              <p className="mt-1 text-sm text-white/30">All rights reserved.</p>
+            </div>
           </div>
         </div>
       </footer>

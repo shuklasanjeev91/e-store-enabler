@@ -1,8 +1,8 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, ArrowLeft, ChevronDown, ChevronUp, Upload, X, Image as ImageIcon } from "lucide-react";
+import { Loader2, ArrowLeft, ChevronDown, ChevronUp, X, Image as ImageIcon, Upload } from "lucide-react";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { toast } from "@/hooks/use-toast";
 import { z } from "zod";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Badge } from "@/components/ui/badge";
 
 const pageSchema = z.object({
   title: z.string().trim().min(1, "Title is required").max(200, "Title must be less than 200 characters"),
@@ -20,6 +21,7 @@ const pageSchema = z.object({
   content: z.string().optional(),
   meta_title: z.string().max(60, "Meta title should be under 60 characters").optional(),
   meta_description: z.string().max(160, "Meta description should be under 160 characters").optional(),
+  meta_keywords: z.string().max(500, "Keywords should be under 500 characters").optional(),
 });
 
 interface StoreData {
@@ -34,13 +36,16 @@ export default function PageEditor() {
   const { pageId } = useParams();
   const isEditing = pageId && pageId !== "new";
   const ogImageInputRef = useRef<HTMLInputElement>(null);
+  const ogImageDropRef = useRef<HTMLDivElement>(null);
 
   const [store, setStore] = useState<StoreData | null>(null);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isDraggingOgImage, setIsDraggingOgImage] = useState(false);
   const [seoOpen, setSeoOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [keywordInput, setKeywordInput] = useState("");
 
   const [formData, setFormData] = useState({
     title: "",
@@ -48,8 +53,12 @@ export default function PageEditor() {
     content: "",
     meta_title: "",
     meta_description: "",
+    meta_keywords: "",
     og_image_url: "",
   });
+
+  // Parse keywords into array for display
+  const keywords = formData.meta_keywords ? formData.meta_keywords.split(",").map(k => k.trim()).filter(Boolean) : [];
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -65,7 +74,6 @@ export default function PageEditor() {
 
   const fetchData = async () => {
     try {
-      // Fetch store
       const { data: storeData, error: storeError } = await supabase
         .from("stores")
         .select("id, name, slug")
@@ -82,7 +90,6 @@ export default function PageEditor() {
 
       setStore(storeData);
 
-      // Fetch page if editing
       if (isEditing) {
         const { data: pageData, error: pageError } = await supabase
           .from("pages")
@@ -109,6 +116,7 @@ export default function PageEditor() {
           content: pageData.content || "",
           meta_title: pageData.meta_title || "",
           meta_description: pageData.meta_description || "",
+          meta_keywords: pageData.meta_keywords || "",
           og_image_url: pageData.og_image_url || "",
         });
       }
@@ -143,7 +151,6 @@ export default function PageEditor() {
       ...prev,
       title,
       slug: newSlug,
-      // Auto-fill meta_title if empty or was previously auto-generated
       meta_title: !prev.meta_title || prev.meta_title === prev.title ? title : prev.meta_title,
     }));
     setErrors((prev) => ({ ...prev, title: "", slug: "" }));
@@ -155,7 +162,7 @@ export default function PageEditor() {
     setErrors((prev) => ({ ...prev, slug: "" }));
   };
 
-  const handleOgImageUpload = async (file: File) => {
+  const handleOgImageUpload = useCallback(async (file: File) => {
     if (!store) return;
 
     if (!file.type.startsWith("image/")) {
@@ -187,7 +194,6 @@ export default function PageEditor() {
         .upload(filePath, file);
 
       if (uploadError) {
-        // Fallback to base64
         const reader = new FileReader();
         reader.onload = (e) => {
           const base64 = e.target?.result as string;
@@ -216,7 +222,40 @@ export default function PageEditor() {
     } finally {
       setIsUploadingImage(false);
     }
-  };
+  }, [store]);
+
+  // OG Image drag handlers
+  const handleOgDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOgImage(true);
+  }, []);
+
+  const handleOgDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (ogImageDropRef.current && !ogImageDropRef.current.contains(e.relatedTarget as Node)) {
+      setIsDraggingOgImage(false);
+    }
+  }, []);
+
+  const handleOgDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleOgDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOgImage(false);
+
+    const files = Array.from(e.dataTransfer.files);
+    const imageFile = files.find(file => file.type.startsWith("image/"));
+    
+    if (imageFile) {
+      handleOgImageUpload(imageFile);
+    }
+  }, [handleOgImageUpload]);
 
   const handleOgImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -230,6 +269,26 @@ export default function PageEditor() {
 
   const removeOgImage = () => {
     setFormData((prev) => ({ ...prev, og_image_url: "" }));
+  };
+
+  const addKeyword = () => {
+    if (!keywordInput.trim()) return;
+    
+    const newKeywords = [...keywords, keywordInput.trim()];
+    setFormData((prev) => ({ ...prev, meta_keywords: newKeywords.join(", ") }));
+    setKeywordInput("");
+  };
+
+  const removeKeyword = (index: number) => {
+    const newKeywords = keywords.filter((_, i) => i !== index);
+    setFormData((prev) => ({ ...prev, meta_keywords: newKeywords.join(", ") }));
+  };
+
+  const handleKeywordInputKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      addKeyword();
+    }
   };
 
   const validateForm = () => {
@@ -272,6 +331,7 @@ export default function PageEditor() {
         content: formData.content,
         meta_title: formData.meta_title || formData.title.trim(),
         meta_description: formData.meta_description || null,
+        meta_keywords: formData.meta_keywords || null,
         og_image_url: formData.og_image_url || null,
         status,
       };
@@ -463,9 +523,6 @@ export default function PageEditor() {
                             {formData.meta_title.length}/60
                           </p>
                         </div>
-                        {errors.meta_title && (
-                          <p className="mt-1 text-sm text-destructive">{errors.meta_title}</p>
-                        )}
                       </div>
 
                       {/* Meta Description */}
@@ -489,12 +546,51 @@ export default function PageEditor() {
                             {formData.meta_description.length}/160
                           </p>
                         </div>
-                        {errors.meta_description && (
-                          <p className="mt-1 text-sm text-destructive">{errors.meta_description}</p>
-                        )}
                       </div>
 
-                      {/* OG Image Upload */}
+                      {/* Meta Keywords */}
+                      <div>
+                        <Label htmlFor="meta_keywords">Keywords</Label>
+                        <p className="text-xs text-muted-foreground mb-2">
+                          Add relevant keywords for search engines (press Enter or comma to add)
+                        </p>
+                        <div className="space-y-3">
+                          <div className="flex gap-2">
+                            <Input
+                              id="meta_keywords"
+                              placeholder="Type a keyword and press Enter"
+                              value={keywordInput}
+                              onChange={(e) => setKeywordInput(e.target.value)}
+                              onKeyDown={handleKeywordInputKeyDown}
+                            />
+                            <Button type="button" variant="outline" onClick={addKeyword}>
+                              Add
+                            </Button>
+                          </div>
+                          {keywords.length > 0 && (
+                            <div className="flex flex-wrap gap-2">
+                              {keywords.map((keyword, index) => (
+                                <Badge
+                                  key={index}
+                                  variant="secondary"
+                                  className="gap-1 pl-3 pr-1.5 py-1"
+                                >
+                                  {keyword}
+                                  <button
+                                    type="button"
+                                    onClick={() => removeKeyword(index)}
+                                    className="ml-1 rounded-full p-0.5 hover:bg-muted-foreground/20"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* OG Image Upload with Drag & Drop */}
                       <div>
                         <Label>Social Sharing Image</Label>
                         <p className="text-xs text-muted-foreground mb-2">
@@ -502,11 +598,11 @@ export default function PageEditor() {
                         </p>
                         
                         {formData.og_image_url ? (
-                          <div className="relative group">
+                          <div className="relative group max-w-md">
                             <img
                               src={formData.og_image_url}
                               alt="Social sharing preview"
-                              className="w-full max-w-md h-auto rounded-lg border object-cover aspect-[1200/630]"
+                              className="w-full h-auto rounded-lg border object-cover aspect-[1200/630]"
                             />
                             <Button
                               type="button"
@@ -520,18 +616,33 @@ export default function PageEditor() {
                           </div>
                         ) : (
                           <div
+                            ref={ogImageDropRef}
                             onClick={() => ogImageInputRef.current?.click()}
-                            className="flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-muted-foreground/30 p-8 cursor-pointer hover:border-muted-foreground/50 hover:bg-muted/30 transition-colors max-w-md"
+                            onDragEnter={handleOgDragEnter}
+                            onDragLeave={handleOgDragLeave}
+                            onDragOver={handleOgDragOver}
+                            onDrop={handleOgDrop}
+                            className={`flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed p-8 cursor-pointer transition-colors max-w-md ${
+                              isDraggingOgImage 
+                                ? "border-primary bg-primary/5" 
+                                : "border-muted-foreground/30 hover:border-muted-foreground/50 hover:bg-muted/30"
+                            }`}
                           >
                             {isUploadingImage ? (
                               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                             ) : (
                               <>
-                                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-                                  <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                                <div className={`flex h-12 w-12 items-center justify-center rounded-full ${isDraggingOgImage ? "bg-primary/10" : "bg-muted"}`}>
+                                  {isDraggingOgImage ? (
+                                    <Upload className="h-6 w-6 text-primary" />
+                                  ) : (
+                                    <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                                  )}
                                 </div>
                                 <div className="text-center">
-                                  <p className="text-sm font-medium">Click to upload image</p>
+                                  <p className="text-sm font-medium">
+                                    {isDraggingOgImage ? "Drop image here" : "Click or drag image to upload"}
+                                  </p>
                                   <p className="text-xs text-muted-foreground">
                                     Recommended: 1200 x 630 pixels
                                   </p>
