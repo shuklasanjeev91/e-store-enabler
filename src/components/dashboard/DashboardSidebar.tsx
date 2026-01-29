@@ -65,7 +65,19 @@ export default function DashboardSidebar({ storeName, storeSlug }: DashboardSide
   const navigate = useNavigate();
   const location = useLocation();
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [expandedMenus, setExpandedMenus] = useState<string[]>(["Appearance"]);
+  
+  // Initialize expanded menus based on current path
+  const getInitialExpandedMenus = () => {
+    const expanded: string[] = [];
+    navItems.forEach((item) => {
+      if (item.children?.some((child) => location.pathname.startsWith(child.path))) {
+        expanded.push(item.label);
+      }
+    });
+    return expanded;
+  };
+  
+  const [expandedMenus, setExpandedMenus] = useState<string[]>(getInitialExpandedMenus);
 
   const toggleMenu = (label: string) => {
     setExpandedMenus((prev) =>
