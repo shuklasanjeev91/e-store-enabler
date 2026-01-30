@@ -12,7 +12,6 @@ import Dashboard from "./pages/Dashboard";
 import Appearance from "./pages/Appearance";
 import CustomizeTheme from "./pages/CustomizeTheme";
 import Pages from "./pages/Pages";
-import Products from "./pages/Products";
 import PageEditor from "./pages/PageEditor";
 import Menus from "./pages/Menus";
 import Blog from "./pages/Blog";
@@ -43,7 +42,6 @@ const App = () => (
               <Route path="/onboarding" element={<Onboarding />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/dashboard/appearance" element={<Appearance />} />
-              <Route path="/dashboard/products" element={<Products />} />
               <Route path="/dashboard/appearance/customize" element={<CustomizeTheme />} />
               <Route path="/dashboard/appearance/pages" element={<Pages />} />
               <Route path="/dashboard/appearance/pages/:pageId" element={<PageEditor />} />
