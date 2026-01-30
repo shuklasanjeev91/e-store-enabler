@@ -41,7 +41,15 @@ const navItems: NavItem[] = [
   { label: "Dashboard", icon: Home, path: "/dashboard" },
   { label: "Orders", icon: ShoppingCart, path: "/dashboard/orders" },
   { label: "Delivery", icon: Truck, path: "/dashboard/delivery" },
-  { label: "Products", icon: Package, path: "/dashboard/products" },
+  {
+    label: "Products",
+    icon: Package,
+    children: [
+      { label: "All products", icon: Package, path: "/dashboard/products" },
+      { label: "Categories", icon: Layers, path: "/dashboard/categories" },
+      { label: "Inventory", icon: BarChart3, path: "/dashboard/inventory" },
+    ],
+  },
   { label: "Analytics", icon: BarChart3, path: "/dashboard/analytics" },
   { label: "Payouts", icon: Wallet, path: "/dashboard/payouts" },
   { label: "Discounts", icon: Percent, path: "/dashboard/discounts" },
