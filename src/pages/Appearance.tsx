@@ -2,40 +2,12 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  Loader2,
-  Check,
-  ExternalLink,
-  Shirt,
-  ShoppingBasket,
-  Smartphone,
-  BookOpen,
-  Baby,
-  Leaf,
-  Gem,
-  Sofa,
-  Sparkles,
-  Dumbbell,
-  PawPrint,
-  Car,
-  HeartPulse,
-  Palette,
-  Flower,
-  Plane,
-} from "lucide-react";
+import { Loader2, Check, HelpCircle, Bell, Menu as MenuIcon } from "lucide-react";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  THEMES,
-  THEME_CATEGORIES,
-  getThemesByCategory,
-  type ThemeId,
-  type CategoryId,
-} from "@/components/storefront/themes";
+import { THEMES, type ThemeId } from "@/components/storefront/themes";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 interface StoreData {
   id: string;
@@ -46,32 +18,12 @@ interface StoreData {
   theme: string;
 }
 
-const categoryIcons: Record<CategoryId, React.ElementType> = {
-  fashion: Shirt,
-  grocery: ShoppingBasket,
-  electronics: Smartphone,
-  books: BookOpen,
-  kids: Baby,
-  ayurvedic: Leaf,
-  jewelry: Gem,
-  home: Sofa,
-  beauty: Sparkles,
-  sports: Dumbbell,
-  pets: PawPrint,
-  automotive: Car,
-  health: HeartPulse,
-  art: Palette,
-  garden: Flower,
-  travel: Plane,
-};
-
 export default function Appearance() {
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
   const [store, setStore] = useState<StoreData | null>(null);
   const [isLoadingStore, setIsLoadingStore] = useState(true);
   const [applyingTheme, setApplyingTheme] = useState<ThemeId | null>(null);
-  const [activeCategory, setActiveCategory] = useState<CategoryId>("fashion");
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -159,128 +111,88 @@ export default function Appearance() {
       <DashboardSidebar storeName={store.name} storeSlug={store.slug} />
 
       <main className="lg:pl-56 pt-14 lg:pt-0">
-        <div className="p-6 lg:p-8">
-          {/* Header */}
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold">Themes</h1>
-            <p className="mt-1 text-muted-foreground">
-              Choose a theme for your storefront by category.
-            </p>
+        {/* Page Header */}
+        <div className="border-b bg-background">
+          <div className="flex items-center justify-between px-6 py-4 lg:px-8">
+            <div className="flex items-center gap-3">
+              <h1 className="text-xl font-semibold">Themes</h1>
+              <Button variant="outline" size="sm" className="gap-1.5">
+                <HelpCircle className="h-4 w-4" />
+                Help
+              </Button>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="icon" className="relative">
+                <Bell className="h-5 w-5" />
+              </Button>
+              <Button variant="ghost" size="icon">
+                <MenuIcon className="h-5 w-5" />
+              </Button>
+            </div>
           </div>
+        </div>
 
-          {/* Category Tabs */}
-          <Tabs
-            value={activeCategory}
-            onValueChange={(v) => setActiveCategory(v as CategoryId)}
-            className="w-full"
-          >
-            <ScrollArea className="w-full whitespace-nowrap">
-              <TabsList className="mb-6 inline-flex h-auto gap-2 bg-transparent p-0">
-                {THEME_CATEGORIES.map((category) => {
-                  const Icon = categoryIcons[category.id];
-                  return (
-                    <TabsTrigger
-                      key={category.id}
-                      value={category.id}
-                      className="flex items-center gap-2 rounded-full border bg-background px-4 py-2 data-[state=active]:border-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                    >
-                      <Icon className="h-4 w-4" />
-                      <span className="hidden sm:inline">{category.name}</span>
-                      <span className="sm:hidden">{category.name.split(" ")[0]}</span>
-                    </TabsTrigger>
-                  );
-                })}
-              </TabsList>
-              <ScrollBar orientation="horizontal" />
-            </ScrollArea>
+        {/* Theme Grid */}
+        <div className="p-6 lg:p-8">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {THEMES.map((theme) => {
+              const isActive = currentTheme === theme.id;
+              const isApplying = applyingTheme === theme.id;
 
-            {THEME_CATEGORIES.map((category) => (
-              <TabsContent key={category.id} value={category.id} className="mt-0">
-                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                  {getThemesByCategory(category.id).map((theme) => {
-                    const isActive = currentTheme === theme.id;
-                    const isApplying = applyingTheme === theme.id;
+              return (
+                <div
+                  key={theme.id}
+                  className={cn(
+                    "group relative overflow-hidden rounded-xl border bg-background transition-all",
+                    isActive
+                      ? "ring-2 ring-primary"
+                      : "hover:shadow-lg"
+                  )}
+                >
+                  {/* Preview Image */}
+                  <div className="relative aspect-[4/3] overflow-hidden bg-muted">
+                    <img
+                      src={theme.preview}
+                      alt={`${theme.name} theme preview`}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
 
-                    return (
-                      <div
-                        key={theme.id}
-                        className={cn(
-                          "group relative overflow-hidden rounded-xl border-2 bg-background transition-all",
-                          isActive
-                            ? "border-primary ring-2 ring-primary/20"
-                            : "border-border hover:border-muted-foreground/30"
-                        )}
+                  {/* Theme Info & Action */}
+                  <div className="flex items-center justify-between p-4">
+                    <h3 className="font-medium">{theme.name}</h3>
+
+                    {isActive ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate("/dashboard/appearance/customize")}
+                        className="gap-1.5"
                       >
-                        {/* Active badge */}
-                        {isActive && (
-                          <div className="absolute left-3 top-3 z-10 flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground">
-                            <Check className="h-3 w-3" />
-                            Active
-                          </div>
+                        Customize
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        onClick={() => applyTheme(theme.id)}
+                        disabled={isApplying}
+                        className="gap-1.5 bg-primary hover:bg-primary/90"
+                      >
+                        {isApplying ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <>
+                            <Check className="h-4 w-4" />
+                            Apply
+                          </>
                         )}
-
-                        {/* Preview Image */}
-                        <div className="relative aspect-[4/3] overflow-hidden bg-muted">
-                          <img
-                            src={theme.preview}
-                            alt={`${theme.name} theme preview`}
-                            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                          />
-
-                          {/* Preview overlay on hover */}
-                          <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
-                            <a
-                              href={`/store/${store.slug}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-slate-900 transition-transform hover:scale-105"
-                            >
-                              Preview store
-                              <ExternalLink className="h-4 w-4" />
-                            </a>
-                          </div>
-                        </div>
-
-                        {/* Theme Info & Action */}
-                        <div className="flex items-center justify-between p-4">
-                          <div className="min-w-0 flex-1">
-                            <h3 className="truncate font-semibold">{theme.name}</h3>
-                            <p className="truncate text-xs text-muted-foreground">
-                              {theme.description}
-                            </p>
-                          </div>
-
-                          {isActive ? (
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              className="ml-2 shrink-0"
-                              onClick={() => navigate("/dashboard/appearance/customize")}
-                            >
-                              Customize
-                            </Button>
-                          ) : (
-                            <Button
-                              size="sm"
-                              onClick={() => applyTheme(theme.id)}
-                              disabled={isApplying}
-                              className="ml-2 shrink-0"
-                            >
-                              {isApplying ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                "Apply"
-                              )}
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
+                      </Button>
+                    )}
+                  </div>
                 </div>
-              </TabsContent>
-            ))}
-          </Tabs>
+              );
+            })}
+          </div>
         </div>
       </main>
     </div>
