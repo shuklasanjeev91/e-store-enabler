@@ -211,6 +211,7 @@ export default function ProductEditor() {
               compareAtPrice: v.compare_at_price,
               inventoryQuantity: v.inventory_quantity,
               imageUrl: v.image_url || "",
+              images: (v as any).images || [],
               isActive: v.is_active,
               option1Name: v.option1_name,
               option1Value: v.option1_value,
@@ -264,7 +265,8 @@ export default function ProductEditor() {
       toast({ title: "Product name is required", variant: "destructive" });
       return;
     }
-    if (!price || isNaN(parseFloat(price))) {
+    // Only require price if no variants
+    if (!hasVariants && (!price || isNaN(parseFloat(price)))) {
       toast({ title: "Valid price is required", variant: "destructive" });
       return;
     }
@@ -276,8 +278,8 @@ export default function ProductEditor() {
         store_id: store.id,
         name: name.trim(),
         category_id: categoryId,
-        price: parseFloat(price),
-        compare_at_price: compareAtPrice ? parseFloat(compareAtPrice) : null,
+        price: hasVariants ? 0 : parseFloat(price),
+        compare_at_price: hasVariants ? null : (compareAtPrice ? parseFloat(compareAtPrice) : null),
         description: description.trim() || null,
         images: images.length > 0 ? images : null,
         inventory_quantity: hasVariants ? 0 : (quantity ? parseInt(quantity) : 0),
@@ -324,7 +326,8 @@ export default function ProductEditor() {
           price: v.price,
           compare_at_price: v.compareAtPrice,
           inventory_quantity: v.inventoryQuantity,
-          image_url: v.imageUrl || null,
+          image_url: v.images?.[0] || v.imageUrl || null,
+          images: v.images || [],
           is_active: v.isActive,
           option1_name: v.option1Name,
           option1_value: v.option1Value,
@@ -471,42 +474,52 @@ export default function ProductEditor() {
                         )}
                       </div>
 
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        <div className="space-y-2">
-                          <Label htmlFor="price">
-                            Price <span className="text-destructive">*</span>
-                          </Label>
-                          <div className="relative">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                              {store.currency === "INR" ? "₹" : "$"}
-                            </span>
-                            <Input
-                              id="price"
-                              type="number"
-                              placeholder="Enter price"
-                              className="pl-8"
-                              value={price}
-                              onChange={(e) => setPrice(e.target.value)}
-                            />
+                      {/* Hide price fields when variants are added */}
+                      {!hasVariants && (
+                        <div className="grid gap-4 sm:grid-cols-2">
+                          <div className="space-y-2">
+                            <Label htmlFor="price">
+                              Price <span className="text-destructive">*</span>
+                            </Label>
+                            <div className="relative">
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                                {store.currency === "INR" ? "₹" : "$"}
+                              </span>
+                              <Input
+                                id="price"
+                                type="number"
+                                placeholder="Enter price"
+                                className="pl-8"
+                                value={price}
+                                onChange={(e) => setPrice(e.target.value)}
+                              />
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="compare-price">Discounted Price</Label>
+                            <div className="relative">
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                                {store.currency === "INR" ? "₹" : "$"}
+                              </span>
+                              <Input
+                                id="compare-price"
+                                type="number"
+                                placeholder="Enter discounted price"
+                                className="pl-8"
+                                value={compareAtPrice}
+                                onChange={(e) => setCompareAtPrice(e.target.value)}
+                              />
+                            </div>
                           </div>
                         </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="compare-price">Discounted Price</Label>
-                          <div className="relative">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                              {store.currency === "INR" ? "₹" : "$"}
-                            </span>
-                            <Input
-                              id="compare-price"
-                              type="number"
-                              placeholder="Enter discounted price"
-                              className="pl-8"
-                              value={compareAtPrice}
-                              onChange={(e) => setCompareAtPrice(e.target.value)}
-                            />
-                          </div>
+                      )}
+                      {hasVariants && (
+                        <div className="rounded-lg border border-dashed border-muted-foreground/50 bg-muted/30 p-4">
+                          <p className="text-sm text-muted-foreground">
+                            Price and discounted price are managed per variant in the Variants section below.
+                          </p>
                         </div>
-                      </div>
+                      )}
 
                       <div className="space-y-2">
                         <Label htmlFor="description">Product Description</Label>

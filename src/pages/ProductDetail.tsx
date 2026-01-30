@@ -6,6 +6,13 @@ import { formatCurrency } from "@/lib/currency";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Heart,
   ShoppingCart,
   Minus,
@@ -30,6 +37,30 @@ interface Product {
   inventory_quantity: number;
   sku: string | null;
   category_id: string | null;
+  has_variants: boolean;
+}
+
+interface ProductVariant {
+  id: string;
+  name: string;
+  sku: string | null;
+  price: number;
+  compare_at_price: number | null;
+  inventory_quantity: number;
+  image_url: string | null;
+  images: string[] | null;
+  is_active: boolean;
+  option1_name: string | null;
+  option1_value: string | null;
+  option2_name: string | null;
+  option2_value: string | null;
+  option3_name: string | null;
+  option3_value: string | null;
+}
+
+interface VariantOption {
+  name: string;
+  values: string[];
 }
 
 export default function ProductDetail() {
@@ -44,6 +75,10 @@ export default function ProductDetail() {
   } = useStorefront();
 
   const [product, setProduct] = useState<Product | null>(null);
+  const [variants, setVariants] = useState<ProductVariant[]>([]);
+  const [variantOptions, setVariantOptions] = useState<VariantOption[]>([]);
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
@@ -55,6 +90,24 @@ export default function ProductDetail() {
     }
   }, [productId]);
 
+  // Update selected variant when options change
+  useEffect(() => {
+    if (variants.length > 0 && Object.keys(selectedOptions).length > 0) {
+      const matchingVariant = variants.find((v) => {
+        let matches = true;
+        if (v.option1_name && selectedOptions[v.option1_name] !== v.option1_value) matches = false;
+        if (v.option2_name && selectedOptions[v.option2_name] !== v.option2_value) matches = false;
+        if (v.option3_name && selectedOptions[v.option3_name] !== v.option3_value) matches = false;
+        return matches;
+      });
+      setSelectedVariant(matchingVariant || null);
+      if (matchingVariant) {
+        setSelectedImage(0);
+        setQuantity(1);
+      }
+    }
+  }, [selectedOptions, variants]);
+
   const fetchProduct = async () => {
     const { data, error } = await supabase
       .from("products")
@@ -65,6 +118,58 @@ export default function ProductDetail() {
 
     if (data) {
       setProduct(data);
+
+      // Fetch variants if product has variants
+      if (data.has_variants) {
+        const { data: variantsData } = await supabase
+          .from("product_variants")
+          .select("*")
+          .eq("product_id", productId)
+          .eq("is_active", true)
+          .order("sort_order");
+
+        if (variantsData && variantsData.length > 0) {
+          setVariants(variantsData);
+
+          // Extract unique options
+          const optionsMap = new Map<string, Set<string>>();
+          variantsData.forEach((v) => {
+            if (v.option1_name && v.option1_value) {
+              if (!optionsMap.has(v.option1_name)) optionsMap.set(v.option1_name, new Set());
+              optionsMap.get(v.option1_name)!.add(v.option1_value);
+            }
+            if (v.option2_name && v.option2_value) {
+              if (!optionsMap.has(v.option2_name)) optionsMap.set(v.option2_name, new Set());
+              optionsMap.get(v.option2_name)!.add(v.option2_value);
+            }
+            if (v.option3_name && v.option3_value) {
+              if (!optionsMap.has(v.option3_name)) optionsMap.set(v.option3_name, new Set());
+              optionsMap.get(v.option3_name)!.add(v.option3_value);
+            }
+          });
+
+          const options: VariantOption[] = [];
+          optionsMap.forEach((values, name) => {
+            options.push({ name, values: Array.from(values) });
+          });
+          setVariantOptions(options);
+
+          // Pre-select first variant options
+          const initialOptions: Record<string, string> = {};
+          const firstVariant = variantsData[0];
+          if (firstVariant.option1_name && firstVariant.option1_value) {
+            initialOptions[firstVariant.option1_name] = firstVariant.option1_value;
+          }
+          if (firstVariant.option2_name && firstVariant.option2_value) {
+            initialOptions[firstVariant.option2_name] = firstVariant.option2_value;
+          }
+          if (firstVariant.option3_name && firstVariant.option3_value) {
+            initialOptions[firstVariant.option3_name] = firstVariant.option3_value;
+          }
+          setSelectedOptions(initialOptions);
+          setSelectedVariant(firstVariant);
+        }
+      }
     }
     setIsLoading(false);
   };
@@ -72,6 +177,7 @@ export default function ProductDetail() {
   const handleAddToCart = async () => {
     if (!product) return;
     setIsAddingToCart(true);
+    // TODO: Handle variant cart addition when cart supports variants
     await addToCart(product.id, quantity);
     setIsAddingToCart(false);
     setIsCartOpen(true);
@@ -87,6 +193,28 @@ export default function ProductDetail() {
       navigator.clipboard.writeText(window.location.href);
     }
   };
+
+  const handleOptionChange = (optionName: string, value: string) => {
+    setSelectedOptions((prev) => ({ ...prev, [optionName]: value }));
+  };
+
+  // Get current display values based on selected variant
+  const displayPrice = selectedVariant?.price ?? product?.price ?? 0;
+  const displayComparePrice = selectedVariant?.compare_at_price ?? product?.compare_at_price;
+  const displayInventory = selectedVariant?.inventory_quantity ?? product?.inventory_quantity ?? 0;
+  const displaySku = selectedVariant?.sku ?? product?.sku;
+
+  // Get images to display (variant images take priority)
+  const getDisplayImages = (): string[] => {
+    if (selectedVariant) {
+      const variantImages = (selectedVariant as any).images || [];
+      if (variantImages.length > 0) return variantImages;
+      if (selectedVariant.image_url) return [selectedVariant.image_url];
+    }
+    return product?.images || [];
+  };
+
+  const displayImages = getDisplayImages();
 
   if (isLoading) {
     return (
@@ -108,13 +236,9 @@ export default function ProductDetail() {
     );
   }
 
-  const isOnSale =
-    product.compare_at_price && product.compare_at_price > product.price;
+  const isOnSale = displayComparePrice && displayComparePrice > displayPrice;
   const discount = isOnSale
-    ? Math.round(
-        ((product.compare_at_price! - product.price) / product.compare_at_price!) *
-          100
-      )
+    ? Math.round(((displayComparePrice! - displayPrice) / displayComparePrice!) * 100)
     : 0;
 
   return (
@@ -137,9 +261,9 @@ export default function ProductDetail() {
           {/* Images */}
           <div className="space-y-4">
             <div className="aspect-square overflow-hidden rounded-xl bg-muted">
-              {product.images?.[selectedImage] ? (
+              {displayImages[selectedImage] ? (
                 <img
-                  src={product.images[selectedImage]}
+                  src={displayImages[selectedImage]}
                   alt={product.name}
                   className="h-full w-full object-cover"
                 />
@@ -149,9 +273,9 @@ export default function ProductDetail() {
                 </div>
               )}
             </div>
-            {product.images && product.images.length > 1 && (
+            {displayImages.length > 1 && (
               <div className="flex gap-2 overflow-x-auto pb-2">
-                {product.images.map((image, index) => (
+                {displayImages.map((image, index) => (
                   <button
                     key={index}
                     onClick={() => setSelectedImage(index)}
@@ -180,9 +304,9 @@ export default function ProductDetail() {
                 <Badge className="mb-2 bg-destructive">-{discount}% OFF</Badge>
               )}
               <h1 className="text-3xl font-bold">{product.name}</h1>
-              {product.sku && (
+              {displaySku && (
                 <p className="mt-1 text-sm text-muted-foreground">
-                  SKU: {product.sku}
+                  SKU: {displaySku}
                 </p>
               )}
             </div>
@@ -190,11 +314,11 @@ export default function ProductDetail() {
             {/* Price */}
             <div className="flex items-baseline gap-3">
               <span className="text-3xl font-bold text-primary">
-                {formatCurrency(product.price, currency)}
+                {formatCurrency(displayPrice, currency)}
               </span>
               {isOnSale && (
                 <span className="text-xl text-muted-foreground line-through">
-                  {formatCurrency(product.compare_at_price!, currency)}
+                  {formatCurrency(displayComparePrice!, currency)}
                 </span>
               )}
             </div>
@@ -206,13 +330,39 @@ export default function ProductDetail() {
               </div>
             )}
 
+            {/* Variant Options */}
+            {variantOptions.length > 0 && (
+              <div className="space-y-4">
+                {variantOptions.map((option) => (
+                  <div key={option.name} className="space-y-2">
+                    <label className="text-sm font-medium">{option.name}</label>
+                    <Select
+                      value={selectedOptions[option.name] || ""}
+                      onValueChange={(value) => handleOptionChange(option.name, value)}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder={`Select ${option.name}`} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {option.values.map((value) => (
+                          <SelectItem key={value} value={value}>
+                            {value}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {/* Stock Status */}
             <div className="flex items-center gap-2">
-              {product.inventory_quantity > 0 ? (
+              {displayInventory > 0 ? (
                 <>
                   <span className="h-2 w-2 rounded-full bg-green-500" />
                   <span className="text-sm text-green-600">
-                    In Stock ({product.inventory_quantity} available)
+                    In Stock ({displayInventory} available)
                   </span>
                 </>
               ) : (
@@ -241,10 +391,8 @@ export default function ProductDetail() {
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={() =>
-                    setQuantity(Math.min(product.inventory_quantity, quantity + 1))
-                  }
-                  disabled={quantity >= product.inventory_quantity}
+                  onClick={() => setQuantity(Math.min(displayInventory, quantity + 1))}
+                  disabled={quantity >= displayInventory}
                 >
                   <Plus className="h-4 w-4" />
                 </Button>
@@ -257,7 +405,7 @@ export default function ProductDetail() {
                 className="flex-1"
                 size="lg"
                 onClick={handleAddToCart}
-                disabled={isAddingToCart || product.inventory_quantity === 0}
+                disabled={isAddingToCart || displayInventory === 0 || (product.has_variants && !selectedVariant)}
               >
                 {isAddingToCart ? (
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
