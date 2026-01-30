@@ -7,7 +7,6 @@ import {
   ArrowLeft,
   Save,
   Eye,
-  Image as ImageIcon,
   X,
 } from "lucide-react";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
@@ -25,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import { MediaPickerTrigger } from "@/components/MediaPicker";
 import { toast } from "@/hooks/use-toast";
 
 interface StoreData {
@@ -428,37 +428,11 @@ export default function BlogEditor() {
                 <CardHeader>
                   <CardTitle>Featured Image</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  {featuredImageUrl ? (
-                    <div className="relative">
-                      <img
-                        src={featuredImageUrl}
-                        alt="Featured"
-                        className="w-full h-40 object-cover rounded-lg"
-                      />
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        className="absolute top-2 right-2 h-8 w-8"
-                        onClick={() => setFeaturedImageUrl("")}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="flex h-40 items-center justify-center rounded-lg border-2 border-dashed bg-muted/50">
-                      <div className="text-center">
-                        <ImageIcon className="mx-auto h-8 w-8 text-muted-foreground" />
-                        <p className="mt-2 text-sm text-muted-foreground">
-                          No image set
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                  <Input
-                    placeholder="Enter image URL"
+                <CardContent>
+                  <MediaPickerTrigger
                     value={featuredImageUrl}
-                    onChange={(e) => setFeaturedImageUrl(e.target.value)}
+                    onChange={setFeaturedImageUrl}
+                    placeholder="Select featured image"
                   />
                 </CardContent>
               </Card>
