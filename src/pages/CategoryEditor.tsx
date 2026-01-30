@@ -6,9 +6,9 @@ import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { MediaPickerTrigger } from "@/components/MediaPicker";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import {
   Collapsible,
   CollapsibleContent,
@@ -18,6 +18,7 @@ import {
   ArrowLeft,
   ChevronDown,
   ChevronUp,
+  HelpCircle,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -32,7 +33,7 @@ const QUICK_NAV_SECTIONS = [
   { id: "information", label: "Information" },
   { id: "banner", label: "Banner" },
   { id: "content", label: "Content" },
-  { id: "seo", label: "SEO" },
+  { id: "seo", label: "Shopdu SEO" },
 ];
 
 export default function CategoryEditor() {
@@ -52,16 +53,19 @@ export default function CategoryEditor() {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [imageUrl, setImageUrl] = useState("");
-  const [bannerUrl, setBannerUrl] = useState("");
+  const [desktopBannerUrl, setDesktopBannerUrl] = useState("");
+  const [mobileBannerUrl, setMobileBannerUrl] = useState("");
+  const [bannerDevice, setBannerDevice] = useState<"desktop" | "mobile">("desktop");
   const [description, setDescription] = useState("");
   const [metaTitle, setMetaTitle] = useState("");
   const [metaDescription, setMetaDescription] = useState("");
+  const [ogImageUrl, setOgImageUrl] = useState("");
   const [status, setStatus] = useState("active");
 
   // Collapsible states
-  const [bannerOpen, setBannerOpen] = useState(false);
+  const [bannerOpen, setBannerOpen] = useState(true);
   const [contentOpen, setContentOpen] = useState(true);
-  const [seoOpen, setSeoOpen] = useState(false);
+  const [seoOpen, setSeoOpen] = useState(true);
 
   // Section refs for scrolling
   const sectionRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
@@ -140,6 +144,18 @@ export default function CategoryEditor() {
     });
   };
 
+  const handleGenerateTitle = () => {
+    if (name) {
+      setMetaTitle(`${name} - Shop the Best ${name} Collection`);
+    }
+  };
+
+  const handleGenerateMetaDescription = () => {
+    if (name) {
+      setMetaDescription(`Explore our exclusive ${name} collection. Find the best products at great prices. Shop now and enjoy fast delivery!`);
+    }
+  };
+
   const handleSave = async () => {
     if (!store) return;
     if (!name.trim()) {
@@ -201,6 +217,9 @@ export default function CategoryEditor() {
 
   if (!store) return null;
 
+  const currentBannerUrl = bannerDevice === "desktop" ? desktopBannerUrl : mobileBannerUrl;
+  const setCurrentBannerUrl = bannerDevice === "desktop" ? setDesktopBannerUrl : setMobileBannerUrl;
+
   return (
     <div className="min-h-screen bg-background">
       <DashboardSidebar storeName={store.name} storeSlug={store.slug} />
@@ -233,7 +252,7 @@ export default function CategoryEditor() {
                 {/* Quick Navigation */}
                 <div className="hidden lg:block">
                   <div className="sticky top-24">
-                    <h3 className="mb-4 text-sm font-medium text-muted-foreground">
+                    <h3 className="mb-4 text-sm font-medium">
                       Quick navigation
                     </h3>
                     <nav className="space-y-1">
@@ -244,8 +263,8 @@ export default function CategoryEditor() {
                           className={cn(
                             "block w-full rounded-lg px-3 py-2 text-left text-sm transition-colors",
                             activeSection === section.id
-                              ? "bg-primary/10 font-medium text-primary"
-                              : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                              ? "font-medium text-primary"
+                              : "text-muted-foreground hover:text-foreground"
                           )}
                         >
                           {section.label}
@@ -334,16 +353,37 @@ export default function CategoryEditor() {
                         </CardHeader>
                       </CollapsibleTrigger>
                       <CollapsibleContent>
-                        <CardContent className="pt-0">
-                          {bannerUrl ? (
-                            <div className="relative h-32 w-full max-w-md overflow-hidden rounded-lg border">
+                        <CardContent className="pt-0 space-y-4">
+                          {/* Device Toggle */}
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              variant={bannerDevice === "desktop" ? "default" : "outline"}
+                              onClick={() => setBannerDevice("desktop")}
+                              className="px-6"
+                            >
+                              For Desktop
+                            </Button>
+                            <Button
+                              type="button"
+                              variant={bannerDevice === "mobile" ? "default" : "outline"}
+                              onClick={() => setBannerDevice("mobile")}
+                              className="px-6"
+                            >
+                              For Mobile
+                            </Button>
+                          </div>
+
+                          {/* Banner Upload Area */}
+                          {currentBannerUrl ? (
+                            <div className="relative h-32 w-full overflow-hidden rounded-lg border">
                               <img
-                                src={bannerUrl}
-                                alt="Banner"
+                                src={currentBannerUrl}
+                                alt={`${bannerDevice} Banner`}
                                 className="h-full w-full object-cover"
                               />
                               <button
-                                onClick={() => setBannerUrl("")}
+                                onClick={() => setCurrentBannerUrl("")}
                                 className="absolute right-2 top-2 rounded-full bg-background/80 p-1 text-muted-foreground hover:text-foreground"
                               >
                                 ×
@@ -351,15 +391,12 @@ export default function CategoryEditor() {
                             </div>
                           ) : (
                             <MediaPickerTrigger
-                              value={bannerUrl}
-                              onChange={setBannerUrl}
-                              placeholder="Upload banner image"
-                              className="flex h-32 w-full max-w-md items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/25 bg-muted/50 text-muted-foreground hover:border-muted-foreground/50"
+                              value={currentBannerUrl}
+                              onChange={setCurrentBannerUrl}
+                              placeholder={`Add category banner (${bannerDevice === "desktop" ? "1296px*236px" : "375px*200px"})`}
+                              className="h-32 w-full"
                             />
                           )}
-                          <p className="mt-2 text-sm text-muted-foreground">
-                            Recommended size: 1200 x 300 px
-                          </p>
                         </CardContent>
                       </CollapsibleContent>
                     </Collapsible>
@@ -370,8 +407,9 @@ export default function CategoryEditor() {
                     <Collapsible open={contentOpen} onOpenChange={setContentOpen}>
                       <CollapsibleTrigger className="w-full">
                         <CardHeader className="flex flex-row items-center justify-between pb-4">
-                          <div>
+                          <div className="flex items-center gap-2">
                             <h2 className="text-lg font-semibold text-left">Content</h2>
+                            <HelpCircle className="h-4 w-4 text-muted-foreground" />
                           </div>
                           {contentOpen ? (
                             <ChevronUp className="h-5 w-5 text-muted-foreground" />
@@ -384,11 +422,11 @@ export default function CategoryEditor() {
                         <CardContent className="space-y-4 pt-0">
                           <div className="space-y-2">
                             <Label>Category Heading and Description</Label>
-                            <Textarea
+                            <RichTextEditor
+                              content={description}
+                              onChange={setDescription}
                               placeholder="Write category description..."
-                              rows={6}
-                              value={description}
-                              onChange={(e) => setDescription(e.target.value)}
+                              storeId={store.id}
                             />
                           </div>
                         </CardContent>
@@ -402,9 +440,9 @@ export default function CategoryEditor() {
                       <CollapsibleTrigger className="w-full">
                         <CardHeader className="flex flex-row items-center justify-between pb-4">
                           <div>
-                            <h2 className="text-lg font-semibold text-left">SEO</h2>
+                            <h2 className="text-lg font-semibold text-left">Shopdu SEO</h2>
                             <p className="text-sm text-muted-foreground text-left">
-                              Optimize your category with meta tags to boost its visibility on search engines.
+                              Optimize your product with meta tags to boost its visibility on search engines.
                             </p>
                           </div>
                           {seoOpen ? (
@@ -415,7 +453,7 @@ export default function CategoryEditor() {
                         </CardHeader>
                       </CollapsibleTrigger>
                       <CollapsibleContent>
-                        <CardContent className="space-y-4 pt-0">
+                        <CardContent className="space-y-6 pt-0">
                           <div className="space-y-2">
                             <Label htmlFor="meta-title">Title Tag</Label>
                             <Input
@@ -424,23 +462,58 @@ export default function CategoryEditor() {
                               value={metaTitle}
                               onChange={(e) => setMetaTitle(e.target.value)}
                             />
-                            <a href="#" className="text-sm text-primary hover:underline">
+                            <button
+                              type="button"
+                              onClick={handleGenerateTitle}
+                              className="text-sm text-primary hover:underline"
+                            >
                               Generate Title
-                            </a>
+                            </button>
                           </div>
 
                           <div className="space-y-2">
                             <Label htmlFor="meta-desc">Meta Description Tag</Label>
-                            <Textarea
+                            <Input
                               id="meta-desc"
                               placeholder="Enter description"
-                              rows={3}
                               value={metaDescription}
                               onChange={(e) => setMetaDescription(e.target.value)}
+                              className="h-20"
                             />
-                            <a href="#" className="text-sm text-primary hover:underline">
+                            <button
+                              type="button"
+                              onClick={handleGenerateMetaDescription}
+                              className="text-sm text-primary hover:underline"
+                            >
                               Generate Meta Description
-                            </a>
+                            </button>
+                          </div>
+
+                          {/* Social Sharing Image Preview */}
+                          <div className="space-y-3">
+                            <Label>Social sharing image preview</Label>
+                            <div className="grid gap-4 sm:grid-cols-2">
+                              {/* Image Upload */}
+                              <MediaPickerTrigger
+                                value={ogImageUrl}
+                                onChange={setOgImageUrl}
+                                placeholder="+ Add image (1200 x 628 px)"
+                                className="aspect-video"
+                              />
+
+                              {/* Preview Card */}
+                              <div className="rounded-lg border bg-card p-4 space-y-2">
+                                <h4 className="font-semibold text-lg">
+                                  {metaTitle || name || "Category Page Title"}
+                                </h4>
+                                <p className="text-sm text-muted-foreground truncate">
+                                  {store && `https://${store.slug}.shopdu.com/categories/${slug || ""}/`}
+                                </p>
+                                <p className="text-sm text-muted-foreground line-clamp-2">
+                                  {metaDescription || "Meta Description"}
+                                </p>
+                              </div>
+                            </div>
                           </div>
                         </CardContent>
                       </CollapsibleContent>
