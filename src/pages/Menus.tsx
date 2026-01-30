@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,7 +10,6 @@ import {
   Plus,
   X,
   GripVertical,
-  ExternalLink,
 } from "lucide-react";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import { Button } from "@/components/ui/button";
@@ -24,7 +23,6 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { toast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
 
 interface StoreData {
   id: string;
@@ -45,11 +43,16 @@ interface Category {
   slug: string;
 }
 
+interface Product {
+  id: string;
+  name: string;
+}
+
 interface MenuItem {
   id: string;
   label: string;
   url: string;
-  type: "page" | "category" | "custom" | "products";
+  type: "page" | "category" | "custom" | "products" | "product";
 }
 
 export default function Menus() {
@@ -58,6 +61,7 @@ export default function Menus() {
   const [store, setStore] = useState<StoreData | null>(null);
   const [pages, setPages] = useState<Page[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -66,14 +70,14 @@ export default function Menus() {
   const [footerItems, setFooterItems] = useState<MenuItem[]>([]);
 
   // Collapsible states
-  const [pagesOpen, setPagesOpen] = useState(true);
+  const [pagesOpen, setPagesOpen] = useState(false);
   const [customLinkOpen, setCustomLinkOpen] = useState(false);
   const [productsOpen, setProductsOpen] = useState(false);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
 
   // Custom link form
-  const [customLabel, setCustomLabel] = useState("");
   const [customUrl, setCustomUrl] = useState("");
+  const [customName, setCustomName] = useState("");
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -125,6 +129,16 @@ export default function Menus() {
         .order("sort_order");
 
       setCategories(categoriesData || []);
+
+      // Fetch products
+      const { data: productsData } = await supabase
+        .from("products")
+        .select("id, name")
+        .eq("store_id", storeData.id)
+        .eq("status", "published")
+        .limit(20);
+
+      setProducts(productsData || []);
     } catch (error) {
       console.error("Error fetching data:", error);
       toast({
@@ -169,17 +183,17 @@ export default function Menus() {
     });
   };
 
-  const addProductsLink = () => {
+  const addProduct = (product: Product) => {
     if (!store) return;
     addMenuItem({
-      label: "Products",
-      url: `/store/${store.slug}`,
-      type: "products",
+      label: product.name,
+      url: `/store/${store.slug}/product/${product.id}`,
+      type: "product",
     });
   };
 
   const addCustomLink = () => {
-    if (!customLabel.trim() || !customUrl.trim()) {
+    if (!customUrl.trim() || !customName.trim()) {
       toast({
         title: "Please fill in both fields",
         variant: "destructive",
@@ -187,17 +201,16 @@ export default function Menus() {
       return;
     }
     addMenuItem({
-      label: customLabel,
+      label: customName,
       url: customUrl.startsWith("http") ? customUrl : `https://${customUrl}`,
       type: "custom",
     });
-    setCustomLabel("");
     setCustomUrl("");
+    setCustomName("");
   };
 
   const handleSave = async () => {
     setIsSaving(true);
-    // For now, just show success - in production, save to database
     setTimeout(() => {
       toast({
         title: "Menu saved!",
@@ -240,41 +253,50 @@ export default function Menus() {
         <div className="p-6 lg:p-8">
           {/* Header/Footer Tabs */}
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "header" | "footer")}>
-            <TabsList className="mb-6">
-              <TabsTrigger value="header" className="px-6">Header</TabsTrigger>
-              <TabsTrigger value="footer" className="px-6">Footer</TabsTrigger>
+            <TabsList className="mb-6 bg-transparent p-0 gap-2">
+              <TabsTrigger 
+                value="header" 
+                className="rounded-lg border bg-background px-6 py-2 data-[state=active]:bg-foreground data-[state=active]:text-background"
+              >
+                Header
+              </TabsTrigger>
+              <TabsTrigger 
+                value="footer" 
+                className="rounded-lg border bg-background px-6 py-2 data-[state=active]:bg-foreground data-[state=active]:text-background"
+              >
+                Footer
+              </TabsTrigger>
             </TabsList>
 
             <div className="grid gap-8 lg:grid-cols-2">
               {/* Left: Menu Items Source */}
-              <div className="space-y-4">
-                <h2 className="text-lg font-semibold">
+              <div>
+                <h2 className="text-lg font-semibold mb-4">
                   {activeTab === "header" ? "Header" : "Footer"} menu items
                 </h2>
 
-                {/* Pages */}
-                <Card>
+                <Card className="divide-y">
+                  {/* Pages */}
                   <Collapsible open={pagesOpen} onOpenChange={setPagesOpen}>
                     <CollapsibleTrigger asChild>
-                      <button className="flex w-full items-center justify-between p-4 text-left font-medium hover:bg-muted/50">
+                      <button className="flex w-full items-center justify-between px-4 py-3 text-left font-medium hover:bg-muted/50 transition-colors">
                         Pages
                         {pagesOpen ? (
-                          <ChevronUp className="h-4 w-4" />
+                          <ChevronUp className="h-4 w-4 text-muted-foreground" />
                         ) : (
-                          <ChevronDown className="h-4 w-4" />
+                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
                         )}
                       </button>
                     </CollapsibleTrigger>
                     <CollapsibleContent>
-                      <CardContent className="pt-0">
+                      <div className="px-4 pb-4">
                         {pages.length === 0 ? (
-                          <div className="py-2">
-                            <p className="text-sm text-muted-foreground mb-3">
-                              No pages have been created.
-                            </p>
+                          <div className="flex items-center gap-2 text-sm">
+                            <span className="text-muted-foreground">No pages have been created.</span>
                             <Button
                               variant="outline"
                               size="sm"
+                              className="text-primary border-primary hover:bg-primary/5"
                               onClick={() => navigate("/dashboard/appearance/pages/new")}
                             >
                               Create a new page
@@ -299,99 +321,130 @@ export default function Menus() {
                             ))}
                           </div>
                         )}
-                      </CardContent>
+                      </div>
                     </CollapsibleContent>
                   </Collapsible>
-                </Card>
 
-                {/* Custom Link */}
-                <Card>
+                  {/* Custom Link */}
                   <Collapsible open={customLinkOpen} onOpenChange={setCustomLinkOpen}>
                     <CollapsibleTrigger asChild>
-                      <button className="flex w-full items-center justify-between p-4 text-left font-medium hover:bg-muted/50">
+                      <button className="flex w-full items-center justify-between px-4 py-3 text-left font-medium hover:bg-muted/50 transition-colors">
                         Custom link
                         {customLinkOpen ? (
-                          <ChevronUp className="h-4 w-4" />
+                          <ChevronUp className="h-4 w-4 text-muted-foreground" />
                         ) : (
-                          <ChevronDown className="h-4 w-4" />
+                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
                         )}
                       </button>
                     </CollapsibleTrigger>
                     <CollapsibleContent>
-                      <CardContent className="space-y-4 pt-0">
+                      <div className="px-4 pb-4 space-y-4">
                         <div className="space-y-2">
-                          <Label>Label</Label>
+                          <Label className="text-sm">
+                            Link <span className="text-destructive">*</span>
+                          </Label>
                           <Input
-                            placeholder="e.g. Contact Us"
-                            value={customLabel}
-                            onChange={(e) => setCustomLabel(e.target.value)}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>URL</Label>
-                          <Input
-                            placeholder="https://example.com"
+                            placeholder="Enter link"
                             value={customUrl}
                             onChange={(e) => setCustomUrl(e.target.value)}
                           />
                         </div>
-                        <Button onClick={addCustomLink} className="w-full">
-                          Add to menu
+                        <div className="space-y-2">
+                          <Label className="text-sm">
+                            Name <span className="text-destructive">*</span>
+                          </Label>
+                          <Input
+                            placeholder="Enter name"
+                            value={customName}
+                            onChange={(e) => setCustomName(e.target.value)}
+                          />
+                        </div>
+                        <Button 
+                          variant="outline" 
+                          onClick={addCustomLink}
+                          className="text-primary border-primary hover:bg-primary/5"
+                        >
+                          Add to Menu
                         </Button>
-                      </CardContent>
+                      </div>
                     </CollapsibleContent>
                   </Collapsible>
-                </Card>
 
-                {/* Products */}
-                <Card>
+                  {/* Products */}
                   <Collapsible open={productsOpen} onOpenChange={setProductsOpen}>
                     <CollapsibleTrigger asChild>
-                      <button className="flex w-full items-center justify-between p-4 text-left font-medium hover:bg-muted/50">
+                      <button className="flex w-full items-center justify-between px-4 py-3 text-left font-medium hover:bg-muted/50 transition-colors">
                         Products
                         {productsOpen ? (
-                          <ChevronUp className="h-4 w-4" />
+                          <ChevronUp className="h-4 w-4 text-muted-foreground" />
                         ) : (
-                          <ChevronDown className="h-4 w-4" />
+                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
                         )}
                       </button>
                     </CollapsibleTrigger>
                     <CollapsibleContent>
-                      <CardContent className="pt-0">
-                        <div className="flex items-center justify-between rounded-lg border p-3">
-                          <span className="text-sm">All Products</span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={addProductsLink}
-                          >
-                            <Plus className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </CardContent>
+                      <div className="px-4 pb-4">
+                        {products.length === 0 ? (
+                          <div className="flex items-center gap-2 text-sm">
+                            <span className="text-muted-foreground">No products have been created.</span>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-primary border-primary hover:bg-primary/5"
+                              onClick={() => navigate("/dashboard/products")}
+                            >
+                              Create a new product
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            {products.map((product) => (
+                              <div
+                                key={product.id}
+                                className="flex items-center justify-between rounded-lg border p-3"
+                              >
+                                <span className="text-sm">{product.name}</span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => addProduct(product)}
+                                >
+                                  <Plus className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </CollapsibleContent>
                   </Collapsible>
-                </Card>
 
-                {/* Categories */}
-                <Card>
+                  {/* Categories */}
                   <Collapsible open={categoriesOpen} onOpenChange={setCategoriesOpen}>
                     <CollapsibleTrigger asChild>
-                      <button className="flex w-full items-center justify-between p-4 text-left font-medium hover:bg-muted/50">
+                      <button className="flex w-full items-center justify-between px-4 py-3 text-left font-medium hover:bg-muted/50 transition-colors">
                         Categories
                         {categoriesOpen ? (
-                          <ChevronUp className="h-4 w-4" />
+                          <ChevronUp className="h-4 w-4 text-muted-foreground" />
                         ) : (
-                          <ChevronDown className="h-4 w-4" />
+                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
                         )}
                       </button>
                     </CollapsibleTrigger>
                     <CollapsibleContent>
-                      <CardContent className="pt-0">
+                      <div className="px-4 pb-4">
                         {categories.length === 0 ? (
-                          <p className="text-sm text-muted-foreground py-2">
-                            No categories have been created.
-                          </p>
+                          <div className="flex flex-col gap-3 text-sm">
+                            <span className="text-muted-foreground">No categories have been created.</span>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-primary border-primary hover:bg-primary/5 w-fit"
+                              onClick={() => navigate("/dashboard/categories")}
+                            >
+                              Create a new category
+                            </Button>
+                          </div>
                         ) : (
                           <div className="space-y-2">
                             {categories.map((category) => (
@@ -411,15 +464,15 @@ export default function Menus() {
                             ))}
                           </div>
                         )}
-                      </CardContent>
+                      </div>
                     </CollapsibleContent>
                   </Collapsible>
                 </Card>
               </div>
 
               {/* Right: Menu Preview */}
-              <div className="space-y-4">
-                <h2 className="text-lg font-semibold">
+              <div>
+                <h2 className="text-lg font-semibold mb-4">
                   {activeTab === "header" ? "Header" : "Footer"} menu
                 </h2>
 
@@ -462,7 +515,7 @@ export default function Menus() {
                   </CardContent>
                 </Card>
 
-                <div className="flex justify-end">
+                <div className="flex justify-end mt-4">
                   <Button onClick={handleSave} disabled={isSaving}>
                     {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Save menu
