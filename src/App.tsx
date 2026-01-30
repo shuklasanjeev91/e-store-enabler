@@ -18,6 +18,8 @@ import Blog from "./pages/Blog";
 import BlogEditor from "./pages/BlogEditor";
 import Storefront from "./pages/Storefront";
 import StorePage from "./pages/StorePage";
+import StorefrontBlog from "./pages/StorefrontBlog";
+import StorefrontBlogPost from "./pages/StorefrontBlogPost";
 import ProductDetail from "./pages/ProductDetail";
 import Checkout from "./pages/Checkout";
 import OrderSuccess from "./pages/OrderSuccess";
@@ -47,6 +49,8 @@ const App = () => (
               <Route path="/dashboard/appearance/blog/:postId" element={<BlogEditor />} />
               <Route path="/store/:slug" element={<Storefront />} />
               <Route path="/store/:slug/page/:pageSlug" element={<StorePage />} />
+              <Route path="/store/:slug/blog" element={<StorefrontBlog />} />
+              <Route path="/store/:slug/blog/:postSlug" element={<StorefrontBlogPost />} />
               <Route path="/store/:slug/product/:productId" element={<ProductDetail />} />
               <Route path="/store/:slug/checkout" element={<Checkout />} />
               <Route path="/store/:slug/order-success/:orderId" element={<OrderSuccess />} />
