@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { MediaPickerTrigger } from "@/components/MediaPicker";
+import { VariantManager, VariantOption, ProductVariant } from "@/components/product/VariantManager";
 import {
   Select,
   SelectContent,
@@ -22,19 +23,11 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
   ArrowLeft,
   HelpCircle,
   Video,
   ChevronDown,
   ChevronUp,
-  Plus,
-  Trash2,
   X,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -51,11 +44,6 @@ interface Category {
   id: string;
   name: string;
   slug: string;
-}
-
-interface VariantOption {
-  name: string;
-  values: string[];
 }
 
 const QUICK_NAV_SECTIONS = [
@@ -106,10 +94,9 @@ export default function ProductEditor() {
   const [seoOpen, setSeoOpen] = useState(false);
 
   // Variants
-  const [variants, setVariants] = useState<VariantOption[]>([]);
-  const [variantsDialogOpen, setVariantsDialogOpen] = useState(false);
-  const [newVariantName, setNewVariantName] = useState("");
-  const [newVariantValues, setNewVariantValues] = useState("");
+  const [variantOptions, setVariantOptions] = useState<VariantOption[]>([]);
+  const [productVariants, setProductVariants] = useState<ProductVariant[]>([]);
+  const [hasVariants, setHasVariants] = useState(false);
 
   // Section refs for scrolling
   const sectionRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
@@ -174,6 +161,68 @@ export default function ProductEditor() {
         setQuantity(productData.inventory_quantity.toString());
         setSku(productData.sku || "");
         setStatus(productData.status);
+        setHasVariants(productData.has_variants || false);
+
+        // Fetch variants if product has variants
+        if (productData.has_variants) {
+          const { data: variantsData } = await supabase
+            .from("product_variants")
+            .select("*")
+            .eq("product_id", productId)
+            .order("sort_order");
+
+          if (variantsData && variantsData.length > 0) {
+            // Reconstruct variant options from variants
+            const optionsMap = new Map<string, Set<string>>();
+            
+            variantsData.forEach((v) => {
+              if (v.option1_name && v.option1_value) {
+                if (!optionsMap.has(v.option1_name)) {
+                  optionsMap.set(v.option1_name, new Set());
+                }
+                optionsMap.get(v.option1_name)!.add(v.option1_value);
+              }
+              if (v.option2_name && v.option2_value) {
+                if (!optionsMap.has(v.option2_name)) {
+                  optionsMap.set(v.option2_name, new Set());
+                }
+                optionsMap.get(v.option2_name)!.add(v.option2_value);
+              }
+              if (v.option3_name && v.option3_value) {
+                if (!optionsMap.has(v.option3_name)) {
+                  optionsMap.set(v.option3_name, new Set());
+                }
+                optionsMap.get(v.option3_name)!.add(v.option3_value);
+              }
+            });
+
+            const reconstructedOptions: VariantOption[] = [];
+            optionsMap.forEach((values, name) => {
+              reconstructedOptions.push({ name, values: Array.from(values) });
+            });
+            setVariantOptions(reconstructedOptions);
+
+            // Map database variants to local state
+            const mappedVariants: ProductVariant[] = variantsData.map((v) => ({
+              id: v.id,
+              name: v.name,
+              sku: v.sku || "",
+              price: v.price,
+              compareAtPrice: v.compare_at_price,
+              inventoryQuantity: v.inventory_quantity,
+              imageUrl: v.image_url || "",
+              isActive: v.is_active,
+              option1Name: v.option1_name,
+              option1Value: v.option1_value,
+              option2Name: v.option2_name,
+              option2Value: v.option2_value,
+              option3Name: v.option3_name,
+              option3Value: v.option3_value,
+              sortOrder: v.sort_order,
+            }));
+            setProductVariants(mappedVariants);
+          }
+        }
       }
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -200,22 +249,13 @@ export default function ProductEditor() {
     setImages(images.filter((_, i) => i !== index));
   };
 
-  const addVariantOption = () => {
-    if (!newVariantName.trim()) return;
-    const values = newVariantValues
-      .split(",")
-      .map((v) => v.trim())
-      .filter(Boolean);
-    if (values.length === 0) return;
-
-    setVariants([...variants, { name: newVariantName.trim(), values }]);
-    setNewVariantName("");
-    setNewVariantValues("");
-    setVariantsDialogOpen(false);
+  const handleOptionsChange = (options: VariantOption[]) => {
+    setVariantOptions(options);
+    setHasVariants(options.length > 0);
   };
 
-  const removeVariant = (index: number) => {
-    setVariants(variants.filter((_, i) => i !== index));
+  const handleVariantsChange = (variants: ProductVariant[]) => {
+    setProductVariants(variants);
   };
 
   const handleSave = async () => {
@@ -240,10 +280,13 @@ export default function ProductEditor() {
         compare_at_price: compareAtPrice ? parseFloat(compareAtPrice) : null,
         description: description.trim() || null,
         images: images.length > 0 ? images : null,
-        inventory_quantity: quantity ? parseInt(quantity) : 0,
-        sku: sku.trim() || null,
+        inventory_quantity: hasVariants ? 0 : (quantity ? parseInt(quantity) : 0),
+        sku: hasVariants ? null : (sku.trim() || null),
         status,
+        has_variants: hasVariants,
       };
+
+      let savedProductId = productId;
 
       if (isEditing) {
         const { error } = await supabase
@@ -252,13 +295,54 @@ export default function ProductEditor() {
           .eq("id", productId);
 
         if (error) throw error;
-        toast({ title: "Product updated successfully" });
       } else {
-        const { error } = await supabase.from("products").insert(productData);
+        const { data: newProduct, error } = await supabase
+          .from("products")
+          .insert(productData)
+          .select("id")
+          .single();
 
         if (error) throw error;
-        toast({ title: "Product created successfully" });
+        savedProductId = newProduct.id;
       }
+
+      // Save variants if product has variants
+      if (hasVariants && savedProductId && productVariants.length > 0) {
+        // Delete existing variants if editing
+        if (isEditing) {
+          await supabase
+            .from("product_variants")
+            .delete()
+            .eq("product_id", savedProductId);
+        }
+
+        // Insert new variants
+        const variantsToInsert = productVariants.map((v, index) => ({
+          product_id: savedProductId,
+          name: v.name,
+          sku: v.sku || null,
+          price: v.price,
+          compare_at_price: v.compareAtPrice,
+          inventory_quantity: v.inventoryQuantity,
+          image_url: v.imageUrl || null,
+          is_active: v.isActive,
+          option1_name: v.option1Name,
+          option1_value: v.option1Value,
+          option2_name: v.option2Name,
+          option2_value: v.option2Value,
+          option3_name: v.option3Name,
+          option3_value: v.option3Value,
+          sort_order: index,
+        }));
+
+        const { error: variantError } = await supabase
+          .from("product_variants")
+          .insert(variantsToInsert);
+
+        if (variantError) throw variantError;
+      }
+
+      toast({ title: isEditing ? "Product updated successfully" : "Product created successfully" });
 
       navigate("/dashboard/products");
     } catch (error) {
@@ -642,7 +726,7 @@ export default function ProductEditor() {
                           <div>
                             <h2 className="text-lg font-semibold text-left">Variants</h2>
                             <p className="text-sm text-muted-foreground text-left">
-                              Customize variants for size, color, and more to cater to all your customers' preferences.
+                              Customize variants for size, color, and more with individual pricing and inventory.
                             </p>
                           </div>
                           {variantsOpen ? (
@@ -654,36 +738,13 @@ export default function ProductEditor() {
                       </CollapsibleTrigger>
                       <CollapsibleContent>
                         <CardContent className="pt-0">
-                          {variants.length > 0 && (
-                            <div className="mb-4 space-y-2">
-                              {variants.map((variant, index) => (
-                                <div
-                                  key={index}
-                                  className="flex items-center justify-between rounded-lg border p-3"
-                                >
-                                  <div>
-                                    <p className="font-medium">{variant.name}</p>
-                                    <p className="text-sm text-muted-foreground">
-                                      {variant.values.join(", ")}
-                                    </p>
-                                  </div>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => removeVariant(index)}
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                          <Button
-                            variant="outline"
-                            onClick={() => setVariantsDialogOpen(true)}
-                          >
-                            Add variants
-                          </Button>
+                          <VariantManager
+                            variants={productVariants}
+                            options={variantOptions}
+                            currency={store.currency}
+                            onOptionsChange={handleOptionsChange}
+                            onVariantsChange={handleVariantsChange}
+                          />
                         </CardContent>
                       </CollapsibleContent>
                     </Collapsible>
@@ -771,49 +832,6 @@ export default function ProductEditor() {
           </div>
         </div>
       </main>
-
-      {/* Add Variants Dialog */}
-      <Dialog open={variantsDialogOpen} onOpenChange={setVariantsDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Add variants</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label>
-                  Option name <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  placeholder="E.g. Style, Material"
-                  value={newVariantName}
-                  onChange={(e) => setNewVariantName(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>
-                  Option values <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  placeholder="Separate values with commas or press enter"
-                  value={newVariantValues}
-                  onChange={(e) => setNewVariantValues(e.target.value)}
-                />
-              </div>
-            </div>
-            <Button variant="ghost" size="sm" className="gap-2">
-              <Plus className="h-4 w-4" />
-              Add another option
-            </Button>
-          </div>
-          <div className="flex flex-col items-center gap-2">
-            <Button onClick={addVariantOption}>Add variants</Button>
-            <p className="text-center text-sm text-muted-foreground">
-              You can add prices, images, quantity, etc after this step.
-            </p>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

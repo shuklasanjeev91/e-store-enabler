@@ -38,6 +38,17 @@ interface Product {
   track_inventory: boolean;
   status: string;
   images: string[] | null;
+  has_variants: boolean;
+}
+
+interface ProductVariant {
+  id: string;
+  product_id: string;
+  name: string;
+  sku: string | null;
+  inventory_quantity: number;
+  is_active: boolean;
+  image_url: string | null;
 }
 
 export default function Inventory() {
@@ -46,9 +57,11 @@ export default function Inventory() {
   const { toast } = useToast();
   const [store, setStore] = useState<StoreData | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
+  const [variants, setVariants] = useState<ProductVariant[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingType, setEditingType] = useState<"product" | "variant">("product");
   const [editQuantity, setEditQuantity] = useState("");
 
   useEffect(() => {
@@ -80,12 +93,26 @@ export default function Inventory() {
 
       const { data: productsData, error: productsError } = await supabase
         .from("products")
-        .select("id, name, sku, inventory_quantity, track_inventory, status, images")
+        .select("id, name, sku, inventory_quantity, track_inventory, status, images, has_variants")
         .eq("store_id", storeData.id)
         .order("name");
 
       if (!productsError && productsData) {
         setProducts(productsData);
+
+        // Fetch variants for products that have variants
+        const productsWithVariants = productsData.filter(p => p.has_variants);
+        if (productsWithVariants.length > 0) {
+          const { data: variantsData } = await supabase
+            .from("product_variants")
+            .select("id, product_id, name, sku, inventory_quantity, is_active, image_url")
+            .in("product_id", productsWithVariants.map(p => p.id))
+            .order("sort_order");
+
+          if (variantsData) {
+            setVariants(variantsData);
+          }
+        }
       }
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -94,20 +121,29 @@ export default function Inventory() {
     }
   };
 
-  const updateInventory = async (productId: string, newQuantity: number) => {
+  const updateInventory = async (id: string, newQuantity: number, type: "product" | "variant") => {
     try {
+      const table = type === "product" ? "products" : "product_variants";
       const { error } = await supabase
-        .from("products")
+        .from(table)
         .update({ inventory_quantity: newQuantity })
-        .eq("id", productId);
+        .eq("id", id);
 
       if (error) throw error;
 
-      setProducts(
-        products.map((p) =>
-          p.id === productId ? { ...p, inventory_quantity: newQuantity } : p
-        )
-      );
+      if (type === "product") {
+        setProducts(
+          products.map((p) =>
+            p.id === id ? { ...p, inventory_quantity: newQuantity } : p
+          )
+        );
+      } else {
+        setVariants(
+          variants.map((v) =>
+            v.id === id ? { ...v, inventory_quantity: newQuantity } : v
+          )
+        );
+      }
       setEditingId(null);
       toast({ title: "Inventory updated" });
     } catch (error) {
@@ -196,21 +232,27 @@ export default function Inventory() {
                 </div>
 
                 {/* Inventory Stats */}
-                <div className="mb-6 grid gap-4 sm:grid-cols-3">
+                <div className="mb-6 grid gap-4 sm:grid-cols-4">
                   <div className="rounded-lg border bg-card p-4">
                     <p className="text-sm text-muted-foreground">Total Products</p>
                     <p className="text-2xl font-bold">{products.length}</p>
                   </div>
                   <div className="rounded-lg border bg-card p-4">
+                    <p className="text-sm text-muted-foreground">Total Variants</p>
+                    <p className="text-2xl font-bold">{variants.length}</p>
+                  </div>
+                  <div className="rounded-lg border bg-card p-4">
                     <p className="text-sm text-muted-foreground">Low Stock</p>
                     <p className="text-2xl font-bold text-yellow-600">
-                      {products.filter((p) => p.inventory_quantity > 0 && p.inventory_quantity <= 10).length}
+                      {products.filter((p) => !p.has_variants && p.inventory_quantity > 0 && p.inventory_quantity <= 10).length +
+                       variants.filter((v) => v.inventory_quantity > 0 && v.inventory_quantity <= 10).length}
                     </p>
                   </div>
                   <div className="rounded-lg border bg-card p-4">
                     <p className="text-sm text-muted-foreground">Out of Stock</p>
                     <p className="text-2xl font-bold text-destructive">
-                      {products.filter((p) => p.inventory_quantity <= 0).length}
+                      {products.filter((p) => !p.has_variants && p.inventory_quantity <= 0).length +
+                       variants.filter((v) => v.inventory_quantity <= 0).length}
                     </p>
                   </div>
                 </div>
@@ -227,74 +269,166 @@ export default function Inventory() {
                     </TableHeader>
                     <TableBody>
                       {filteredProducts.map((product) => {
-                        const stockStatus = getStockStatus(product.inventory_quantity);
+                        const productVariants = variants.filter(v => v.product_id === product.id);
+                        const hasVariants = product.has_variants && productVariants.length > 0;
+                        const totalQuantity = hasVariants 
+                          ? productVariants.reduce((sum, v) => sum + v.inventory_quantity, 0)
+                          : product.inventory_quantity;
+                        const stockStatus = getStockStatus(totalQuantity);
+
                         return (
-                          <TableRow key={product.id}>
-                            <TableCell>
-                              <div className="flex items-center gap-3">
-                                <div className="h-10 w-10 overflow-hidden rounded-lg border bg-muted">
-                                  {product.images?.[0] ? (
-                                    <img
-                                      src={product.images[0]}
-                                      alt={product.name}
-                                      className="h-full w-full object-cover"
+                          <>
+                            <TableRow key={product.id}>
+                              <TableCell>
+                                <div className="flex items-center gap-3">
+                                  <div className="h-10 w-10 overflow-hidden rounded-lg border bg-muted">
+                                    {product.images?.[0] ? (
+                                      <img
+                                        src={product.images[0]}
+                                        alt={product.name}
+                                        className="h-full w-full object-cover"
+                                      />
+                                    ) : (
+                                      <div className="flex h-full w-full items-center justify-center">
+                                        <Package className="h-4 w-4 text-muted-foreground" />
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div>
+                                    <p className="font-medium">{product.name}</p>
+                                    {hasVariants && (
+                                      <p className="text-xs text-muted-foreground">
+                                        {productVariants.length} variants
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-muted-foreground">
+                                {hasVariants ? "-" : (product.sku || "-")}
+                              </TableCell>
+                              <TableCell>
+                                {hasVariants ? (
+                                  <span className="font-medium">{totalQuantity}</span>
+                                ) : editingId === product.id && editingType === "product" ? (
+                                  <div className="flex items-center gap-2">
+                                    <Input
+                                      type="number"
+                                      className="h-8 w-20"
+                                      value={editQuantity}
+                                      onChange={(e) => setEditQuantity(e.target.value)}
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter") {
+                                          updateInventory(product.id, parseInt(editQuantity) || 0, "product");
+                                        }
+                                        if (e.key === "Escape") {
+                                          setEditingId(null);
+                                        }
+                                      }}
+                                      autoFocus
                                     />
-                                  ) : (
-                                    <div className="flex h-full w-full items-center justify-center">
-                                      <Package className="h-4 w-4 text-muted-foreground" />
-                                    </div>
-                                  )}
-                                </div>
-                                <p className="font-medium">{product.name}</p>
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-muted-foreground">
-                              {product.sku || "-"}
-                            </TableCell>
-                            <TableCell>
-                              {editingId === product.id ? (
-                                <div className="flex items-center gap-2">
-                                  <Input
-                                    type="number"
-                                    className="h-8 w-20"
-                                    value={editQuantity}
-                                    onChange={(e) => setEditQuantity(e.target.value)}
-                                    onKeyDown={(e) => {
-                                      if (e.key === "Enter") {
-                                        updateInventory(product.id, parseInt(editQuantity) || 0);
-                                      }
-                                      if (e.key === "Escape") {
-                                        setEditingId(null);
-                                      }
+                                    <Button
+                                      size="sm"
+                                      onClick={() => updateInventory(product.id, parseInt(editQuantity) || 0, "product")}
+                                    >
+                                      Save
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <button
+                                    className="font-medium hover:text-primary"
+                                    onClick={() => {
+                                      setEditingId(product.id);
+                                      setEditingType("product");
+                                      setEditQuantity(product.inventory_quantity.toString());
                                     }}
-                                    autoFocus
-                                  />
-                                  <Button
-                                    size="sm"
-                                    onClick={() => updateInventory(product.id, parseInt(editQuantity) || 0)}
                                   >
-                                    Save
-                                  </Button>
-                                </div>
-                              ) : (
-                                <button
-                                  className="font-medium hover:text-primary"
-                                  onClick={() => {
-                                    setEditingId(product.id);
-                                    setEditQuantity(product.inventory_quantity.toString());
-                                  }}
-                                >
-                                  {product.inventory_quantity}
-                                </button>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant={stockStatus.variant} className="gap-1">
-                                <stockStatus.icon className="h-3 w-3" />
-                                {stockStatus.label}
-                              </Badge>
-                            </TableCell>
-                          </TableRow>
+                                    {product.inventory_quantity}
+                                  </button>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant={stockStatus.variant} className="gap-1">
+                                  <stockStatus.icon className="h-3 w-3" />
+                                  {stockStatus.label}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                            {/* Variant rows */}
+                            {hasVariants && productVariants.map((variant) => {
+                              const variantStatus = getStockStatus(variant.inventory_quantity);
+                              return (
+                                <TableRow key={variant.id} className="bg-muted/30">
+                                  <TableCell>
+                                    <div className="flex items-center gap-3 pl-8">
+                                      <div className="h-8 w-8 overflow-hidden rounded border bg-muted">
+                                        {variant.image_url ? (
+                                          <img
+                                            src={variant.image_url}
+                                            alt={variant.name}
+                                            className="h-full w-full object-cover"
+                                          />
+                                        ) : (
+                                          <div className="flex h-full w-full items-center justify-center">
+                                            <Package className="h-3 w-3 text-muted-foreground" />
+                                          </div>
+                                        )}
+                                      </div>
+                                      <p className="text-sm text-muted-foreground">{variant.name}</p>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="text-muted-foreground text-sm">
+                                    {variant.sku || "-"}
+                                  </TableCell>
+                                  <TableCell>
+                                    {editingId === variant.id && editingType === "variant" ? (
+                                      <div className="flex items-center gap-2">
+                                        <Input
+                                          type="number"
+                                          className="h-7 w-16 text-sm"
+                                          value={editQuantity}
+                                          onChange={(e) => setEditQuantity(e.target.value)}
+                                          onKeyDown={(e) => {
+                                            if (e.key === "Enter") {
+                                              updateInventory(variant.id, parseInt(editQuantity) || 0, "variant");
+                                            }
+                                            if (e.key === "Escape") {
+                                              setEditingId(null);
+                                            }
+                                          }}
+                                          autoFocus
+                                        />
+                                        <Button
+                                          size="sm"
+                                          className="h-7"
+                                          onClick={() => updateInventory(variant.id, parseInt(editQuantity) || 0, "variant")}
+                                        >
+                                          Save
+                                        </Button>
+                                      </div>
+                                    ) : (
+                                      <button
+                                        className="text-sm font-medium hover:text-primary"
+                                        onClick={() => {
+                                          setEditingId(variant.id);
+                                          setEditingType("variant");
+                                          setEditQuantity(variant.inventory_quantity.toString());
+                                        }}
+                                      >
+                                        {variant.inventory_quantity}
+                                      </button>
+                                    )}
+                                  </TableCell>
+                                  <TableCell>
+                                    <Badge variant={variantStatus.variant} className="gap-1 text-xs">
+                                      <variantStatus.icon className="h-3 w-3" />
+                                      {variantStatus.label}
+                                    </Badge>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </>
                         );
                       })}
                     </TableBody>
