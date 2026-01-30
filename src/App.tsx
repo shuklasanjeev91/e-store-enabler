@@ -15,6 +15,7 @@ import Pages from "./pages/Pages";
 import PageEditor from "./pages/PageEditor";
 import Menus from "./pages/Menus";
 import Blog from "./pages/Blog";
+import MediaLibrary from "./pages/MediaLibrary";
 import BlogEditor from "./pages/BlogEditor";
 import Storefront from "./pages/Storefront";
 import StorePage from "./pages/StorePage";
@@ -47,6 +48,7 @@ const App = () => (
               <Route path="/dashboard/appearance/menus" element={<Menus />} />
               <Route path="/dashboard/appearance/blog" element={<Blog />} />
               <Route path="/dashboard/appearance/blog/:postId" element={<BlogEditor />} />
+              <Route path="/dashboard/appearance/media" element={<MediaLibrary />} />
               <Route path="/store/:slug" element={<Storefront />} />
               <Route path="/store/:slug/page/:pageSlug" element={<StorePage />} />
               <Route path="/store/:slug/blog" element={<StorefrontBlog />} />
