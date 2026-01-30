@@ -14,6 +14,7 @@ import CustomizeTheme from "./pages/CustomizeTheme";
 import Pages from "./pages/Pages";
 import PageEditor from "./pages/PageEditor";
 import Menus from "./pages/Menus";
+import Blog from "./pages/Blog";
 import Storefront from "./pages/Storefront";
 import StorePage from "./pages/StorePage";
 import ProductDetail from "./pages/ProductDetail";
@@ -41,6 +42,7 @@ const App = () => (
               <Route path="/dashboard/appearance/pages" element={<Pages />} />
               <Route path="/dashboard/appearance/pages/:pageId" element={<PageEditor />} />
               <Route path="/dashboard/appearance/menus" element={<Menus />} />
+              <Route path="/dashboard/appearance/blog" element={<Blog />} />
               <Route path="/store/:slug" element={<Storefront />} />
               <Route path="/store/:slug/page/:pageSlug" element={<StorePage />} />
               <Route path="/store/:slug/product/:productId" element={<ProductDetail />} />
