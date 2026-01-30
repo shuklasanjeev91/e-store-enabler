@@ -703,6 +703,56 @@ export type Database = {
           },
         ]
       }
+      store_menus: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          link_type: string
+          location: string
+          name: string
+          reference_id: string | null
+          sort_order: number
+          store_id: string
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          link_type: string
+          location: string
+          name: string
+          reference_id?: string | null
+          sort_order?: number
+          store_id: string
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          link_type?: string
+          location?: string
+          name?: string
+          reference_id?: string | null
+          sort_order?: number
+          store_id?: string
+          updated_at?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_menus_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_theme_settings: {
         Row: {
           accent_color: string | null
