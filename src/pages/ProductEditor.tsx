@@ -85,7 +85,7 @@ export default function ProductEditor() {
   const [metaTitle, setMetaTitle] = useState("");
   const [metaDescription, setMetaDescription] = useState("");
   const [ogImageUrl, setOgImageUrl] = useState("");
-  const [status, setStatus] = useState("active");
+  const [status, setStatus] = useState("draft");
 
   // Collapsible states
   const [inventoryOpen, setInventoryOpen] = useState(true);
@@ -447,31 +447,48 @@ export default function ProductEditor() {
                         />
                       </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="category">
-                          Product Category <span className="text-destructive">*</span>
-                        </Label>
-                        <Select value={categoryId || ""} onValueChange={setCategoryId}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Enter category name" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {categories.map((cat) => (
-                              <SelectItem key={cat.id} value={cat.id}>
-                                {cat.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        {categories.length === 0 && (
-                          <Button
-                            variant="link"
-                            className="h-auto p-0 text-sm"
-                            onClick={() => navigate("/dashboard/categories/new")}
-                          >
-                            + Create a new category
-                          </Button>
-                        )}
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="category">
+                            Product Category <span className="text-destructive">*</span>
+                          </Label>
+                          <Select value={categoryId || ""} onValueChange={setCategoryId}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Enter category name" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {categories.map((cat) => (
+                                <SelectItem key={cat.id} value={cat.id}>
+                                  {cat.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {categories.length === 0 && (
+                            <Button
+                              variant="link"
+                              className="h-auto p-0 text-sm"
+                              onClick={() => navigate("/dashboard/categories/new")}
+                            >
+                              + Create a new category
+                            </Button>
+                          )}
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="status">Status</Label>
+                          <Select value={status} onValueChange={setStatus}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="draft">Draft</SelectItem>
+                              <SelectItem value="published">Published</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-muted-foreground">
+                            Only published products are visible on your storefront
+                          </p>
+                        </div>
                       </div>
 
                       {/* Hide price fields when variants are added */}

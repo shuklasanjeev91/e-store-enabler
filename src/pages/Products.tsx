@@ -299,9 +299,9 @@ export default function Products() {
                         </TableCell>
                         <TableCell>
                           <Badge
-                            variant={product.status === "active" ? "default" : "secondary"}
+                            variant={product.status === "published" ? "default" : "secondary"}
                           >
-                            {product.status}
+                            {product.status === "published" ? "Published" : "Draft"}
                           </Badge>
                         </TableCell>
                         <TableCell>
