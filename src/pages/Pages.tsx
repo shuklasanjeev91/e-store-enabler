@@ -258,8 +258,24 @@ export default function Pages() {
         <div className="p-6 lg:p-8">
           {pages.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-24">
-              <div className="mb-6 flex h-32 w-32 items-center justify-center rounded-full bg-primary/10">
-                <FileText className="h-16 w-16 text-primary" />
+              {/* Illustration */}
+              <div className="mb-8 relative">
+                <div className="w-40 h-32 rounded-lg bg-primary/10 flex items-center justify-center relative overflow-hidden">
+                  {/* Browser window mockup */}
+                  <div className="absolute top-2 left-2 flex gap-1">
+                    <div className="w-2 h-2 rounded-full bg-primary/30" />
+                    <div className="w-2 h-2 rounded-full bg-primary/30" />
+                    <div className="w-2 h-2 rounded-full bg-primary/30" />
+                  </div>
+                  <div className="mt-4 space-y-2 p-4 w-full">
+                    <div className="h-3 w-16 bg-primary/20 rounded" />
+                    <div className="h-2 w-full bg-primary/15 rounded" />
+                    <div className="h-2 w-3/4 bg-primary/15 rounded" />
+                  </div>
+                </div>
+                <div className="absolute -bottom-2 -right-2 w-16 h-12 rounded bg-primary/20 flex items-center justify-center">
+                  <FileText className="h-6 w-6 text-primary" />
+                </div>
               </div>
               <h2 className="mb-2 text-xl font-semibold">
                 Add pages to provide more details

@@ -384,20 +384,20 @@ export default function CustomizeTheme() {
       <DashboardSidebar storeName={store.name} storeSlug={store.slug} />
 
       <main className="lg:pl-56 pt-14 lg:pt-0">
-        <div className="p-6 lg:p-8">
-          {/* Header */}
-          <div className="mb-6 flex items-center justify-between">
+        {/* Page Header */}
+        <div className="border-b bg-background">
+          <div className="flex items-center justify-between px-6 py-4 lg:px-8">
             <div className="flex items-center gap-4">
-              <Link to="/appearance">
-                <Button variant="ghost" size="icon">
+              <Link to="/dashboard/appearance">
+                <Button variant="ghost" size="icon" className="shrink-0">
                   <ArrowLeft className="h-5 w-5" />
                 </Button>
               </Link>
-              <div>
-                <h1 className="text-2xl font-bold">Customize Theme</h1>
-                <p className="text-sm text-muted-foreground">
-                  Personalize your storefront appearance
-                </p>
+              <div className="flex items-center gap-3">
+                <h1 className="text-xl font-semibold">Customize Theme</h1>
+                <Button variant="outline" size="sm" className="gap-1.5">
+                  <span className="hidden sm:inline">How it works</span>
+                </Button>
               </div>
             </div>
             <div className="flex gap-2">
@@ -407,18 +407,18 @@ export default function CustomizeTheme() {
                 rel="noopener noreferrer"
               >
                 <Button variant="outline">
-                  <ExternalLink className="mr-2 h-4 w-4" />
                   Preview
                 </Button>
               </a>
               <Button onClick={handleSave} disabled={isSaving}>
-                {isSaving ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : null}
+                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Update
               </Button>
             </div>
           </div>
+        </div>
+
+        <div className="p-6 lg:p-8">
 
           {/* Main Content */}
           <div className="grid gap-8 lg:grid-cols-[280px_1fr]">
