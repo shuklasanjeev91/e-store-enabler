@@ -23,6 +23,23 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { toast } from "@/hooks/use-toast";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 interface StoreData {
   id: string;
@@ -69,6 +86,59 @@ interface DbMenuItem {
   is_active: boolean;
 }
 
+// Sortable menu item component
+function SortableMenuItem({
+  item,
+  onRemove,
+}: {
+  item: MenuItem;
+  onRemove: (id: string) => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: item.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 1 : 0,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="flex items-center gap-3 rounded-lg border p-3 bg-muted/30"
+    >
+      <button
+        {...attributes}
+        {...listeners}
+        className="cursor-grab touch-none active:cursor-grabbing"
+      >
+        <GripVertical className="h-4 w-4 text-muted-foreground" />
+      </button>
+      <div className="flex-1 min-w-0">
+        <p className="font-medium text-sm truncate">{item.name}</p>
+        <p className="text-xs text-muted-foreground truncate">{item.url}</p>
+      </div>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-8 w-8 shrink-0"
+        onClick={() => onRemove(item.id)}
+      >
+        <X className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+}
+
 export default function Menus() {
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
@@ -92,6 +162,27 @@ export default function Menus() {
   // Custom link form
   const [customUrl, setCustomUrl] = useState("");
   const [customName, setCustomName] = useState("");
+
+  // DnD sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = currentItems.findIndex((item) => item.id === active.id);
+    const newIndex = currentItems.findIndex((item) => item.id === over.id);
+
+    const reordered = arrayMove(currentItems, oldIndex, newIndex).map(
+      (item, idx) => ({ ...item, sort_order: idx })
+    );
+    setCurrentItems(reordered);
+  };
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -583,32 +674,26 @@ export default function Menus() {
                         </p>
                       </div>
                     ) : (
-                      <div className="space-y-2">
-                        {currentItems.map((item) => (
-                          <div
-                            key={item.id}
-                            className="flex items-center gap-3 rounded-lg border p-3 bg-muted/30"
-                          >
-                            <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-sm truncate">
-                                {item.name}
-                              </p>
-                              <p className="text-xs text-muted-foreground truncate">
-                                {item.url}
-                              </p>
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 shrink-0"
-                              onClick={() => removeMenuItem(item.id)}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
+                      <DndContext
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        onDragEnd={handleDragEnd}
+                      >
+                        <SortableContext
+                          items={currentItems.map((item) => item.id)}
+                          strategy={verticalListSortingStrategy}
+                        >
+                          <div className="space-y-2">
+                            {currentItems.map((item) => (
+                              <SortableMenuItem
+                                key={item.id}
+                                item={item}
+                                onRemove={removeMenuItem}
+                              />
+                            ))}
                           </div>
-                        ))}
-                      </div>
+                        </SortableContext>
+                      </DndContext>
                     )}
                   </CardContent>
                 </Card>
