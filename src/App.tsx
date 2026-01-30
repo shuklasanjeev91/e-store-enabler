@@ -9,6 +9,11 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
+import Products from "./pages/Products";
+import ProductEditor from "./pages/ProductEditor";
+import Categories from "./pages/Categories";
+import CategoryEditor from "./pages/CategoryEditor";
+import Inventory from "./pages/Inventory";
 import Appearance from "./pages/Appearance";
 import CustomizeTheme from "./pages/CustomizeTheme";
 import Pages from "./pages/Pages";
@@ -41,6 +46,11 @@ const App = () => (
               <Route path="/auth" element={<Auth />} />
               <Route path="/onboarding" element={<Onboarding />} />
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/dashboard/products" element={<Products />} />
+              <Route path="/dashboard/products/:productId" element={<ProductEditor />} />
+              <Route path="/dashboard/categories" element={<Categories />} />
+              <Route path="/dashboard/categories/:categoryId" element={<CategoryEditor />} />
+              <Route path="/dashboard/inventory" element={<Inventory />} />
               <Route path="/dashboard/appearance" element={<Appearance />} />
               <Route path="/dashboard/appearance/customize" element={<CustomizeTheme />} />
               <Route path="/dashboard/appearance/pages" element={<Pages />} />
