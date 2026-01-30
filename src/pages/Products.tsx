@@ -183,7 +183,7 @@ export default function Products() {
                   <DropdownMenuItem onClick={() => navigate("/dashboard/products/new")}>
                     Add single product
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate("/dashboard/products/bulk-upload")}>
+                  <DropdownMenuItem onClick={() => navigate("/dashboard/products/bulk")}>
                     Bulk upload products
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -216,7 +216,7 @@ export default function Products() {
                   <Button onClick={() => navigate("/dashboard/products/new")} className="gap-2">
                     Add new product
                   </Button>
-                  <Button variant="outline" onClick={() => navigate("/dashboard/products/bulk-upload")}>
+                  <Button variant="outline" onClick={() => navigate("/dashboard/products/bulk")}>
                     Bulk upload products
                   </Button>
                 </div>

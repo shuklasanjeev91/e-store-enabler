@@ -11,6 +11,7 @@ import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
 import ProductEditor from "./pages/ProductEditor";
+import BulkUploadProducts from "./pages/BulkUploadProducts";
 import Categories from "./pages/Categories";
 import CategoryEditor from "./pages/CategoryEditor";
 import Inventory from "./pages/Inventory";
@@ -47,6 +48,7 @@ const App = () => (
               <Route path="/onboarding" element={<Onboarding />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/dashboard/products" element={<Products />} />
+              <Route path="/dashboard/products/bulk" element={<BulkUploadProducts />} />
               <Route path="/dashboard/products/:productId" element={<ProductEditor />} />
               <Route path="/dashboard/categories" element={<Categories />} />
               <Route path="/dashboard/categories/:categoryId" element={<CategoryEditor />} />
