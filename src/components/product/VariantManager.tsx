@@ -41,6 +41,7 @@ export interface ProductVariant {
   compareAtPrice: number | null;
   inventoryQuantity: number;
   imageUrl: string;
+  images: string[];
   isActive: boolean;
   option1Name: string | null;
   option1Value: string | null;
@@ -102,6 +103,7 @@ export function VariantManager({
         compareAtPrice: null,
         inventoryQuantity: 0,
         imageUrl: "",
+        images: [],
         isActive: true,
         option1Name: opts[0]?.name || null,
         option1Value: combo[0] || null,
@@ -327,28 +329,44 @@ export function VariantManager({
                 {variants.map((variant, index) => (
                   <TableRow key={variant.name}>
                     <TableCell>
-                      <div className="h-10 w-10">
-                        {variant.imageUrl ? (
-                          <div className="relative group h-10 w-10 overflow-hidden rounded-lg border">
+                      <div className="flex items-center gap-1">
+                        {(variant.images || []).map((img, imgIndex) => (
+                          <div
+                            key={imgIndex}
+                            className="relative group h-10 w-10 overflow-hidden rounded-lg border flex-shrink-0"
+                          >
                             <img
-                              src={variant.imageUrl}
-                              alt={variant.name}
+                              src={img}
+                              alt={`${variant.name} ${imgIndex + 1}`}
                               className="h-full w-full object-cover"
                             />
                             <button
                               type="button"
-                              onClick={() => updateVariant(index, { imageUrl: "" })}
+                              onClick={() => {
+                                const updatedImages = (variant.images || []).filter((_, i) => i !== imgIndex);
+                                updateVariant(index, { 
+                                  images: updatedImages,
+                                  imageUrl: updatedImages[0] || ""
+                                });
+                              }}
                               className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
                             >
-                              <X className="h-4 w-4 text-white" />
+                              <X className="h-3 w-3 text-white" />
                             </button>
                           </div>
-                        ) : (
+                        ))}
+                        {(variant.images || []).length < 5 && (
                           <MediaPickerTrigger
                             value=""
-                            onChange={(url) => updateVariant(index, { imageUrl: url })}
+                            onChange={(url) => {
+                              const updatedImages = [...(variant.images || []), url];
+                              updateVariant(index, { 
+                                images: updatedImages,
+                                imageUrl: updatedImages[0] || url
+                              });
+                            }}
                             placeholder=""
-                            className="!h-10 !w-10"
+                            className="!h-10 !w-10 flex-shrink-0"
                           />
                         )}
                       </div>
