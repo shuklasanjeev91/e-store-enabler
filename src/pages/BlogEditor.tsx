@@ -5,9 +5,12 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Loader2,
   ArrowLeft,
-  Save,
-  Eye,
+  ChevronUp,
+  ChevronDown,
+  Sparkles,
+  Plus,
   X,
+  ExternalLink,
 } from "lucide-react";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import { Button } from "@/components/ui/button";
@@ -15,38 +18,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Card, CardContent } from "@/components/ui/card";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
-import { MediaPickerTrigger } from "@/components/MediaPicker";
+import { MediaPicker } from "@/components/MediaPicker";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "@/hooks/use-toast";
 
 interface StoreData {
   id: string;
   name: string;
   slug: string;
-}
-
-interface BlogPost {
-  id: string;
-  store_id: string;
-  title: string;
-  slug: string;
-  excerpt: string | null;
-  content: string | null;
-  featured_image_url: string | null;
-  status: string;
-  author_name: string | null;
-  meta_title: string | null;
-  meta_description: string | null;
-  tags: string[];
-  published_at: string | null;
 }
 
 function generateSlug(title: string): string {
@@ -71,9 +52,9 @@ export default function BlogEditor() {
   // Form state
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
-  const [excerpt, setExcerpt] = useState("");
   const [content, setContent] = useState("");
   const [featuredImageUrl, setFeaturedImageUrl] = useState("");
+  const [ogImageUrl, setOgImageUrl] = useState("");
   const [status, setStatus] = useState<"draft" | "published">("draft");
   const [authorName, setAuthorName] = useState("");
   const [metaTitle, setMetaTitle] = useState("");
@@ -81,8 +62,13 @@ export default function BlogEditor() {
   const [tagsInput, setTagsInput] = useState("");
   const [tags, setTags] = useState<string[]>([]);
 
-  // Auto-generate slug from title
+  // UI state
   const [autoSlug, setAutoSlug] = useState(true);
+  const [isSlugEditing, setIsSlugEditing] = useState(false);
+  const [isSeoOpen, setIsSeoOpen] = useState(false);
+  const [showMediaPicker, setShowMediaPicker] = useState(false);
+  const [showOgMediaPicker, setShowOgMediaPicker] = useState(false);
+  const [mediaPickerMode, setMediaPickerMode] = useState<"featured" | "og">("featured");
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -121,7 +107,6 @@ export default function BlogEditor() {
 
       setStore(storeData);
 
-      // Fetch existing post if editing
       if (!isNew && postId) {
         const { data: postData, error: postError } = await supabase
           .from("blog_posts")
@@ -138,10 +123,8 @@ export default function BlogEditor() {
           return;
         }
 
-        // Populate form
         setTitle(postData.title);
         setSlug(postData.slug);
-        setExcerpt(postData.excerpt || "");
         setContent(postData.content || "");
         setFeaturedImageUrl(postData.featured_image_url || "");
         setStatus(postData.status as "draft" | "published");
@@ -153,10 +136,7 @@ export default function BlogEditor() {
       }
     } catch (error) {
       console.error("Error fetching data:", error);
-      toast({
-        title: "Failed to load data",
-        variant: "destructive",
-      });
+      toast({ title: "Failed to load data", variant: "destructive" });
     } finally {
       setIsLoadingData(false);
     }
@@ -185,7 +165,7 @@ export default function BlogEditor() {
         store_id: store.id,
         title: title.trim(),
         slug: slug.trim(),
-        excerpt: excerpt.trim() || null,
+        excerpt: null,
         content: content || null,
         featured_image_url: featuredImageUrl.trim() || null,
         status: finalStatus,
@@ -219,10 +199,7 @@ export default function BlogEditor() {
           variant: "destructive",
         });
       } else {
-        toast({
-          title: "Failed to save post",
-          variant: "destructive",
-        });
+        toast({ title: "Failed to save post", variant: "destructive" });
       }
     } finally {
       setIsSaving(false);
@@ -241,26 +218,29 @@ export default function BlogEditor() {
     setTags(tags.filter((t) => t !== tagToRemove));
   };
 
+  const getBlogUrl = () => {
+    if (!store) return "";
+    return `${window.location.origin}/store/${store.slug}/blog/${slug || ""}`;
+  };
+
   if (isLoading || isLoadingData) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-muted/30">
+      <div className="flex min-h-screen items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
-  if (!store) {
-    return null;
-  }
+  if (!store) return null;
 
   return (
-    <div className="min-h-screen bg-muted/30">
+    <div className="min-h-screen bg-background">
       <DashboardSidebar storeName={store.name} storeSlug={store.slug} />
 
       <main className="lg:pl-56 pt-14 lg:pt-0">
-        {/* Page Header */}
-        <div className="border-b bg-background">
-          <div className="flex items-center justify-between px-6 py-4 lg:px-8">
+        {/* Header */}
+        <div className="sticky top-0 z-10 border-b bg-background">
+          <div className="flex items-center justify-between px-6 py-4">
             <div className="flex items-center gap-3">
               <Button
                 variant="ghost"
@@ -269,231 +249,350 @@ export default function BlogEditor() {
               >
                 <ArrowLeft className="h-5 w-5" />
               </Button>
-              <h1 className="text-xl font-semibold">
-                {isNew ? "New Blog Post" : "Edit Blog Post"}
+              <h1 className="text-lg font-medium">
+                {isNew ? "Add blog post" : "Edit blog post"}
               </h1>
             </div>
-            <div className="flex items-center gap-2">
-              {!isNew && status === "published" && (
-                <Button
-                  variant="outline"
-                  onClick={() =>
-                    window.open(`/store/${store.slug}/blog/${slug}`, "_blank")
-                  }
-                >
-                  <Eye className="mr-2 h-4 w-4" />
-                  Preview
-                </Button>
-              )}
+            <div className="flex items-center gap-3">
               <Button
-                variant="outline"
+                variant="ghost"
                 onClick={() => handleSave(false)}
                 disabled={isSaving}
+                className="text-muted-foreground hover:text-foreground"
               >
                 {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                <Save className="mr-2 h-4 w-4" />
-                Save Draft
+                Save as draft
               </Button>
-              <Button onClick={() => handleSave(true)} disabled={isSaving}>
+              <Button
+                onClick={() => handleSave(true)}
+                disabled={isSaving}
+                className="bg-primary hover:bg-primary/90"
+              >
                 {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Publish
+                Publish blog
               </Button>
             </div>
           </div>
         </div>
 
         <div className="p-6 lg:p-8">
-          <div className="grid gap-8 lg:grid-cols-3">
-            {/* Main Content */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Title & Slug */}
-              <Card>
-                <CardContent className="pt-6 space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="title">Title *</Label>
-                    <Input
-                      id="title"
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      placeholder="Enter blog post title"
-                      className="text-lg"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="slug">
-                      Slug *
-                      <span className="ml-2 text-xs text-muted-foreground">
-                        (URL-friendly identifier)
-                      </span>
-                    </Label>
-                    <Input
-                      id="slug"
-                      value={slug}
-                      onChange={(e) => {
-                        setSlug(e.target.value);
-                        setAutoSlug(false);
-                      }}
-                      placeholder="blog-post-slug"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="excerpt">Excerpt</Label>
-                    <Textarea
-                      id="excerpt"
-                      value={excerpt}
-                      onChange={(e) => setExcerpt(e.target.value)}
-                      placeholder="Brief summary of the post (shown in listings)"
-                      rows={2}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Content Editor */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Content</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <RichTextEditor
-                    content={content}
-                    onChange={setContent}
-                    placeholder="Write your blog post content here..."
-                  />
-                </CardContent>
-              </Card>
-
-              {/* SEO Settings */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>SEO Settings</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="metaTitle">Meta Title</Label>
-                    <Input
-                      id="metaTitle"
-                      value={metaTitle}
-                      onChange={(e) => setMetaTitle(e.target.value)}
-                      placeholder="SEO title (defaults to post title)"
-                      maxLength={60}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      {metaTitle.length}/60 characters
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="metaDescription">Meta Description</Label>
-                    <Textarea
-                      id="metaDescription"
-                      value={metaDescription}
-                      onChange={(e) => setMetaDescription(e.target.value)}
-                      placeholder="SEO description (defaults to excerpt)"
-                      rows={2}
-                      maxLength={160}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      {metaDescription.length}/160 characters
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Sidebar */}
-            <div className="space-y-6">
-              {/* Status */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Status</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Select
-                    value={status}
-                    onValueChange={(v) => setStatus(v as "draft" | "published")}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="draft">Draft</SelectItem>
-                      <SelectItem value="published">Published</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </CardContent>
-              </Card>
-
-              {/* Featured Image */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Featured Image</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <MediaPickerTrigger
-                    value={featuredImageUrl}
-                    onChange={setFeaturedImageUrl}
-                    placeholder="Select featured image"
-                  />
-                </CardContent>
-              </Card>
-
-              {/* Author */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Author</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Input
-                    value={authorName}
-                    onChange={(e) => setAuthorName(e.target.value)}
-                    placeholder="Author name"
-                  />
-                </CardContent>
-              </Card>
-
-              {/* Tags */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Tags</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex gap-2">
-                    <Input
-                      value={tagsInput}
-                      onChange={(e) => setTagsInput(e.target.value)}
-                      placeholder="Add tag"
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          addTag();
-                        }
-                      }}
-                    />
-                    <Button variant="outline" onClick={addTag}>
-                      Add
-                    </Button>
-                  </div>
-                  {tags.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      {tags.map((tag) => (
-                        <Badge
-                          key={tag}
-                          variant="secondary"
-                          className="gap-1 cursor-pointer"
-                          onClick={() => removeTag(tag)}
-                        >
-                          {tag}
-                          <X className="h-3 w-3" />
-                        </Badge>
-                      ))}
+          <div className="max-w-6xl mx-auto">
+            <div className="grid gap-8 lg:grid-cols-[1fr,320px]">
+              {/* Main Content */}
+              <div className="space-y-6">
+                {/* Blog Post Card */}
+                <Card className="shadow-sm">
+                  <CardContent className="p-6 space-y-6">
+                    <h2 className="text-base font-medium">Blog post</h2>
+                    
+                    {/* Title */}
+                    <div className="space-y-2">
+                      <Label htmlFor="title" className="text-sm">
+                        Title <span className="text-destructive">*</span>
+                      </Label>
+                      <Input
+                        id="title"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        placeholder="Add a title to your blog"
+                        className="h-11"
+                      />
                     </div>
-                  )}
-                </CardContent>
-              </Card>
+
+                    {/* Blog Link */}
+                    <div className="space-y-2">
+                      <Label className="text-sm text-muted-foreground">Blog link:</Label>
+                      <div className="flex items-center gap-2">
+                        {isSlugEditing ? (
+                          <div className="flex-1 flex items-center gap-2">
+                            <span className="text-sm text-muted-foreground truncate">
+                              {window.location.origin}/store/{store.slug}/blog/
+                            </span>
+                            <Input
+                              value={slug}
+                              onChange={(e) => {
+                                setSlug(e.target.value);
+                                setAutoSlug(false);
+                              }}
+                              className="flex-1 h-9"
+                            />
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setIsSlugEditing(false)}
+                            >
+                              Done
+                            </Button>
+                          </div>
+                        ) : (
+                          <>
+                            <a
+                              href={getBlogUrl()}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-primary hover:underline flex items-center gap-1 truncate"
+                            >
+                              {getBlogUrl()}
+                              <ExternalLink className="h-3 w-3" />
+                            </a>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setIsSlugEditing(true)}
+                            >
+                              Edit
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Content */}
+                    <div className="space-y-2">
+                      <Label className="text-sm">
+                        Content <span className="text-destructive">*</span>
+                      </Label>
+                      <RichTextEditor
+                        content={content}
+                        onChange={setContent}
+                        placeholder="Write your blog post content here..."
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* SEO Card */}
+                <Card className="shadow-sm">
+                  <Collapsible open={isSeoOpen} onOpenChange={setIsSeoOpen}>
+                    <CollapsibleTrigger asChild>
+                      <button className="flex items-center justify-between w-full p-6 text-left">
+                        <div>
+                          <h2 className="text-base font-medium">SEO</h2>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Optimize your product with meta tags to boost its visibility on search engines.
+                          </p>
+                        </div>
+                        {isSeoOpen ? (
+                          <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                        ) : (
+                          <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                        )}
+                      </button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <CardContent className="px-6 pb-6 pt-0 space-y-6">
+                        {/* Title Tag */}
+                        <div className="space-y-2">
+                          <Label htmlFor="metaTitle" className="text-sm">Title Tag</Label>
+                          <Input
+                            id="metaTitle"
+                            value={metaTitle}
+                            onChange={(e) => setMetaTitle(e.target.value)}
+                            placeholder="Enter title tag"
+                            className="h-11"
+                            maxLength={60}
+                          />
+                          <button className="text-sm text-primary hover:underline flex items-center gap-1">
+                            <Sparkles className="h-3 w-3" />
+                            Generate Title
+                          </button>
+                        </div>
+
+                        {/* Meta Description */}
+                        <div className="space-y-2">
+                          <Label htmlFor="metaDescription" className="text-sm">Meta Description Tag</Label>
+                          <Textarea
+                            id="metaDescription"
+                            value={metaDescription}
+                            onChange={(e) => setMetaDescription(e.target.value)}
+                            placeholder="Enter description"
+                            rows={3}
+                            maxLength={160}
+                          />
+                          <button className="text-sm text-primary hover:underline flex items-center gap-1">
+                            <Sparkles className="h-3 w-3" />
+                            Generate Meta Description
+                          </button>
+                        </div>
+
+                        {/* Social Sharing Preview */}
+                        <div className="space-y-3">
+                          <Label className="text-sm">Social sharing image preview</Label>
+                          <div className="flex gap-4">
+                            {/* OG Image Upload */}
+                            <button
+                              type="button"
+                              onClick={() => setShowOgMediaPicker(true)}
+                              className="w-40 h-24 border-2 border-dashed rounded-lg flex flex-col items-center justify-center gap-1 text-primary hover:border-primary hover:bg-primary/5 transition-colors"
+                            >
+                              {ogImageUrl ? (
+                                <img src={ogImageUrl} alt="OG" className="w-full h-full object-cover rounded-lg" />
+                              ) : (
+                                <>
+                                  <Plus className="h-5 w-5" />
+                                  <span className="text-xs">Add image</span>
+                                  <span className="text-xs text-muted-foreground">(Recommended size : 1200 x 628 px)</span>
+                                </>
+                              )}
+                            </button>
+                            
+                            {/* Preview Card */}
+                            <div className="flex-1 border rounded-lg p-4 bg-muted/30">
+                              <p className="font-medium text-muted-foreground">
+                                {title || "Blog Title"}
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-1 truncate">
+                                {getBlogUrl()}
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {metaDescription || "Meta Description"}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Collapsible>
+                </Card>
+              </div>
+
+              {/* Sidebar */}
+              <div className="space-y-6">
+                <Card className="shadow-sm">
+                  <CardContent className="p-6 space-y-6">
+                    <h2 className="text-base font-medium">Blog information</h2>
+                    
+                    {/* Featured Image */}
+                    <div className="space-y-2">
+                      <Label className="text-sm">Featured Image</Label>
+                      {featuredImageUrl ? (
+                        <div className="relative group">
+                          <img
+                            src={featuredImageUrl}
+                            alt="Featured"
+                            className="w-full aspect-video object-cover rounded-lg border"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setFeaturedImageUrl("")}
+                            className="absolute top-2 right-2 p-1 bg-black/50 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setShowMediaPicker(true)}
+                          className="w-full aspect-video border-2 border-dashed rounded-lg flex flex-col items-center justify-center gap-2 text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+                        >
+                          <Plus className="h-6 w-6" />
+                          <span className="text-sm font-medium">Add Image</span>
+                          <span className="text-xs">Recommended size (918px*483px)</span>
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Author Name */}
+                    <div className="space-y-2">
+                      <Label htmlFor="authorName" className="text-sm">Author Name</Label>
+                      <Input
+                        id="authorName"
+                        value={authorName}
+                        onChange={(e) => setAuthorName(e.target.value)}
+                        placeholder="Add author name"
+                        className="h-11"
+                      />
+                    </div>
+
+                    {/* Tags */}
+                    <div className="space-y-2">
+                      <Label className="text-sm">Tags</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          value={tagsInput}
+                          onChange={(e) => setTagsInput(e.target.value)}
+                          placeholder="Add tag"
+                          className="h-10"
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              addTag();
+                            }
+                          }}
+                        />
+                        <Button variant="outline" onClick={addTag} size="sm">
+                          Add
+                        </Button>
+                      </div>
+                      {tags.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {tags.map((tag) => (
+                            <Badge
+                              key={tag}
+                              variant="secondary"
+                              className="gap-1 pr-1"
+                            >
+                              {tag}
+                              <button
+                                onClick={() => removeTag(tag)}
+                                className="ml-1 hover:text-destructive"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           </div>
         </div>
+
+        {/* Bottom Action Bar (Mobile) */}
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 border-t bg-background p-4 flex gap-3">
+          <Button
+            variant="outline"
+            className="flex-1"
+            onClick={() => handleSave(false)}
+            disabled={isSaving}
+          >
+            Save as draft
+          </Button>
+          <Button
+            className="flex-1"
+            onClick={() => handleSave(true)}
+            disabled={isSaving}
+          >
+            Publish blog
+          </Button>
+        </div>
       </main>
+
+      {/* Media Picker for Featured Image */}
+      <MediaPicker
+        open={showMediaPicker}
+        onOpenChange={setShowMediaPicker}
+        onSelect={(url) => {
+          setFeaturedImageUrl(url);
+          setShowMediaPicker(false);
+        }}
+        accept="images"
+      />
+
+      {/* Media Picker for OG Image */}
+      <MediaPicker
+        open={showOgMediaPicker}
+        onOpenChange={setShowOgMediaPicker}
+        onSelect={(url) => {
+          setOgImageUrl(url);
+          setShowOgMediaPicker(false);
+        }}
+        accept="images"
+      />
     </div>
   );
 }
