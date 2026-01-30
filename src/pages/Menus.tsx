@@ -50,9 +50,23 @@ interface Product {
 
 interface MenuItem {
   id: string;
-  label: string;
+  name: string;
   url: string;
-  type: "page" | "category" | "custom" | "products" | "product";
+  link_type: "page" | "category" | "product" | "custom";
+  reference_id?: string | null;
+  sort_order: number;
+}
+
+interface DbMenuItem {
+  id: string;
+  store_id: string;
+  location: string;
+  link_type: string;
+  name: string;
+  url: string;
+  reference_id: string | null;
+  sort_order: number;
+  is_active: boolean;
 }
 
 export default function Menus() {
@@ -110,35 +124,64 @@ export default function Menus() {
 
       setStore(storeData);
 
-      // Fetch pages
-      const { data: pagesData } = await supabase
-        .from("pages")
-        .select("id, title, slug, status")
-        .eq("store_id", storeData.id)
-        .eq("status", "published")
-        .order("sort_order");
+      // Fetch pages, categories, products, and menu items in parallel
+      const [pagesRes, categoriesRes, productsRes, menusRes] = await Promise.all([
+        supabase
+          .from("pages")
+          .select("id, title, slug, status")
+          .eq("store_id", storeData.id)
+          .eq("status", "published")
+          .order("sort_order"),
+        supabase
+          .from("categories")
+          .select("id, name, slug")
+          .eq("store_id", storeData.id)
+          .eq("status", "active")
+          .order("sort_order"),
+        supabase
+          .from("products")
+          .select("id, name")
+          .eq("store_id", storeData.id)
+          .eq("status", "published")
+          .limit(20),
+        supabase
+          .from("store_menus")
+          .select("*")
+          .eq("store_id", storeData.id)
+          .eq("is_active", true)
+          .order("sort_order"),
+      ]);
 
-      setPages(pagesData || []);
+      setPages(pagesRes.data || []);
+      setCategories(categoriesRes.data || []);
+      setProducts(productsRes.data || []);
 
-      // Fetch categories
-      const { data: categoriesData } = await supabase
-        .from("categories")
-        .select("id, name, slug")
-        .eq("store_id", storeData.id)
-        .eq("status", "active")
-        .order("sort_order");
-
-      setCategories(categoriesData || []);
-
-      // Fetch products
-      const { data: productsData } = await supabase
-        .from("products")
-        .select("id, name")
-        .eq("store_id", storeData.id)
-        .eq("status", "published")
-        .limit(20);
-
-      setProducts(productsData || []);
+      // Parse menu items
+      if (menusRes.data) {
+        const dbMenus = menusRes.data as DbMenuItem[];
+        const headerMenus = dbMenus
+          .filter((m) => m.location === "header")
+          .map((m) => ({
+            id: m.id,
+            name: m.name,
+            url: m.url,
+            link_type: m.link_type as MenuItem["link_type"],
+            reference_id: m.reference_id,
+            sort_order: m.sort_order,
+          }));
+        const footerMenus = dbMenus
+          .filter((m) => m.location === "footer")
+          .map((m) => ({
+            id: m.id,
+            name: m.name,
+            url: m.url,
+            link_type: m.link_type as MenuItem["link_type"],
+            reference_id: m.reference_id,
+            sort_order: m.sort_order,
+          }));
+        setHeaderItems(headerMenus);
+        setFooterItems(footerMenus);
+      }
     } catch (error) {
       console.error("Error fetching data:", error);
       toast({
@@ -153,10 +196,11 @@ export default function Menus() {
   const currentItems = activeTab === "header" ? headerItems : footerItems;
   const setCurrentItems = activeTab === "header" ? setHeaderItems : setFooterItems;
 
-  const addMenuItem = (item: Omit<MenuItem, "id">) => {
+  const addMenuItem = (item: Omit<MenuItem, "id" | "sort_order">) => {
     const newItem: MenuItem = {
       ...item,
-      id: `${item.type}-${Date.now()}`,
+      id: `new-${Date.now()}`,
+      sort_order: currentItems.length,
     };
     setCurrentItems([...currentItems, newItem]);
   };
@@ -167,28 +211,44 @@ export default function Menus() {
 
   const addPage = (page: Page) => {
     if (!store) return;
+    // Check if already added
+    if (currentItems.some((i) => i.link_type === "page" && i.reference_id === page.id)) {
+      toast({ title: "Page already added", variant: "destructive" });
+      return;
+    }
     addMenuItem({
-      label: page.title,
+      name: page.title,
       url: `/store/${store.slug}/page/${page.slug}`,
-      type: "page",
+      link_type: "page",
+      reference_id: page.id,
     });
   };
 
   const addCategory = (category: Category) => {
     if (!store) return;
+    if (currentItems.some((i) => i.link_type === "category" && i.reference_id === category.id)) {
+      toast({ title: "Category already added", variant: "destructive" });
+      return;
+    }
     addMenuItem({
-      label: category.name,
+      name: category.name,
       url: `/store/${store.slug}?category=${category.slug}`,
-      type: "category",
+      link_type: "category",
+      reference_id: category.id,
     });
   };
 
   const addProduct = (product: Product) => {
     if (!store) return;
+    if (currentItems.some((i) => i.link_type === "product" && i.reference_id === product.id)) {
+      toast({ title: "Product already added", variant: "destructive" });
+      return;
+    }
     addMenuItem({
-      label: product.name,
+      name: product.name,
       url: `/store/${store.slug}/product/${product.id}`,
-      type: "product",
+      link_type: "product",
+      reference_id: product.id,
     });
   };
 
@@ -201,23 +261,61 @@ export default function Menus() {
       return;
     }
     addMenuItem({
-      label: customName,
+      name: customName,
       url: customUrl.startsWith("http") ? customUrl : `https://${customUrl}`,
-      type: "custom",
+      link_type: "custom",
+      reference_id: null,
     });
     setCustomUrl("");
     setCustomName("");
   };
 
   const handleSave = async () => {
+    if (!store) return;
     setIsSaving(true);
-    setTimeout(() => {
+
+    try {
+      // Delete existing menu items for this store and location
+      const location = activeTab;
+      await supabase
+        .from("store_menus")
+        .delete()
+        .eq("store_id", store.id)
+        .eq("location", location);
+
+      // Insert new menu items
+      if (currentItems.length > 0) {
+        const menuData = currentItems.map((item, index) => ({
+          store_id: store.id,
+          location,
+          link_type: item.link_type,
+          name: item.name,
+          url: item.url,
+          reference_id: item.reference_id || null,
+          sort_order: index,
+          is_active: true,
+        }));
+
+        const { error } = await supabase.from("store_menus").insert(menuData);
+        if (error) throw error;
+      }
+
       toast({
         title: "Menu saved!",
-        description: "Your navigation menu has been updated.",
+        description: `Your ${location} menu has been updated.`,
       });
+
+      // Refetch to get proper IDs
+      await fetchData();
+    } catch (error) {
+      console.error("Error saving menu:", error);
+      toast({
+        title: "Failed to save menu",
+        variant: "destructive",
+      });
+    } finally {
       setIsSaving(false);
-    }, 500);
+    }
   };
 
   if (isLoading || isLoadingData) {
@@ -494,7 +592,7 @@ export default function Menus() {
                             <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
                             <div className="flex-1 min-w-0">
                               <p className="font-medium text-sm truncate">
-                                {item.label}
+                                {item.name}
                               </p>
                               <p className="text-xs text-muted-foreground truncate">
                                 {item.url}

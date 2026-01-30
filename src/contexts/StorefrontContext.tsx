@@ -50,6 +50,14 @@ interface StorePage {
   slug: string;
 }
 
+interface MenuItemData {
+  id: string;
+  name: string;
+  url: string;
+  link_type: string;
+  sort_order: number;
+}
+
 interface StorefrontContextType {
   customer: Customer | null;
   setCustomer: (customer: Customer | null) => void;
@@ -57,6 +65,8 @@ interface StorefrontContextType {
   wishlistItems: WishlistItem[];
   categories: Category[];
   pages: StorePage[];
+  headerMenuItems: MenuItemData[];
+  footerMenuItems: MenuItemData[];
   cartId: string | null;
   sessionId: string;
   isAuthOpen: boolean;
@@ -93,6 +103,8 @@ export function StorefrontProvider({ children }: { children: ReactNode }) {
   const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [pages, setPages] = useState<StorePage[]>([]);
+  const [headerMenuItems, setHeaderMenuItems] = useState<MenuItemData[]>([]);
+  const [footerMenuItems, setFooterMenuItems] = useState<MenuItemData[]>([]);
   const [cartId, setCartId] = useState<string | null>(null);
   const [storeId, setStoreId] = useState<string | null>(null);
   const [currency, setCurrency] = useState<string>("USD");
@@ -130,11 +142,12 @@ export function StorefrontProvider({ children }: { children: ReactNode }) {
     }
   }, [customer]);
 
-  // Fetch categories and pages when store changes
+  // Fetch categories, pages, and menus when store changes
   useEffect(() => {
     if (storeId) {
       fetchCategories();
       fetchPages();
+      fetchMenuItems();
     }
   }, [storeId]);
 
@@ -174,6 +187,39 @@ export function StorefrontProvider({ children }: { children: ReactNode }) {
       .eq("status", "published")
       .order("sort_order", { ascending: true });
     if (data) setPages(data);
+  };
+
+  const fetchMenuItems = async () => {
+    if (!storeId) return;
+    const { data } = await supabase
+      .from("store_menus")
+      .select("id, name, url, link_type, location, sort_order")
+      .eq("store_id", storeId)
+      .eq("is_active", true)
+      .order("sort_order");
+    
+    if (data) {
+      const header = data
+        .filter((m) => m.location === "header")
+        .map((m) => ({
+          id: m.id,
+          name: m.name,
+          url: m.url,
+          link_type: m.link_type,
+          sort_order: m.sort_order,
+        }));
+      const footer = data
+        .filter((m) => m.location === "footer")
+        .map((m) => ({
+          id: m.id,
+          name: m.name,
+          url: m.url,
+          link_type: m.link_type,
+          sort_order: m.sort_order,
+        }));
+      setHeaderMenuItems(header);
+      setFooterMenuItems(footer);
+    }
   };
 
   const initializeCart = async () => {
@@ -331,6 +377,8 @@ export function StorefrontProvider({ children }: { children: ReactNode }) {
         wishlistItems,
         categories,
         pages,
+        headerMenuItems,
+        footerMenuItems,
         cartId,
         sessionId,
         isAuthOpen,

@@ -52,6 +52,8 @@ export default function BaseStorefrontTheme({ store, products, config }: BaseSto
     customer,
     categories,
     pages,
+    headerMenuItems,
+    footerMenuItems,
   } = useStorefront();
 
   const { themeSettings, banners } = useThemeSettings(store.id);
@@ -201,26 +203,43 @@ export default function BaseStorefrontTheme({ store, products, config }: BaseSto
               <Link to={`/store/${store.slug}`} className="text-sm transition-opacity hover:opacity-70" style={{ color: effectiveColors.foregroundMuted }}>
                 Shop
               </Link>
-              {categories.slice(0, 4).map((cat) => (
-                <button
-                  key={cat.id}
-                  className="text-sm transition-opacity hover:opacity-70"
-                  style={{ color: effectiveColors.foregroundMuted }}
-                  onClick={() => setFilters({ ...filters, categories: [cat.id] })}
-                >
-                  {cat.name}
-                </button>
-              ))}
-              {pages.slice(0, 2).map((page) => (
-                <Link
-                  key={page.id}
-                  to={`/store/${store.slug}/page/${page.slug}`}
-                  className="text-sm transition-opacity hover:opacity-70"
-                  style={{ color: effectiveColors.foregroundMuted }}
-                >
-                  {page.title}
-                </Link>
-              ))}
+              {headerMenuItems.length > 0 ? (
+                // Use dynamic header menu items
+                headerMenuItems.slice(0, 5).map((item) => (
+                  <Link
+                    key={item.id}
+                    to={item.url}
+                    className="text-sm transition-opacity hover:opacity-70"
+                    style={{ color: effectiveColors.foregroundMuted }}
+                  >
+                    {item.name}
+                  </Link>
+                ))
+              ) : (
+                // Fallback to categories + pages
+                <>
+                  {categories.slice(0, 4).map((cat) => (
+                    <button
+                      key={cat.id}
+                      className="text-sm transition-opacity hover:opacity-70"
+                      style={{ color: effectiveColors.foregroundMuted }}
+                      onClick={() => setFilters({ ...filters, categories: [cat.id] })}
+                    >
+                      {cat.name}
+                    </button>
+                  ))}
+                  {pages.slice(0, 2).map((page) => (
+                    <Link
+                      key={page.id}
+                      to={`/store/${store.slug}/page/${page.slug}`}
+                      className="text-sm transition-opacity hover:opacity-70"
+                      style={{ color: effectiveColors.foregroundMuted }}
+                    >
+                      {page.title}
+                    </Link>
+                  ))}
+                </>
+              )}
             </nav>
           </div>
           <div className="flex items-center gap-1">
@@ -297,28 +316,45 @@ export default function BaseStorefrontTheme({ store, products, config }: BaseSto
         >
           <nav className="flex flex-col items-center gap-6 p-8">
             <Link to={`/store/${store.slug}`} className="text-lg" onClick={() => setMobileMenuOpen(false)}>Shop</Link>
-            {categories.map((cat) => (
-              <button
-                key={cat.id}
-                className="text-lg"
-                onClick={() => {
-                  setFilters({ ...filters, categories: [cat.id] });
-                  setMobileMenuOpen(false);
-                }}
-              >
-                {cat.name}
-              </button>
-            ))}
-            {pages.map((page) => (
-              <Link
-                key={page.id}
-                to={`/store/${store.slug}/page/${page.slug}`}
-                className="text-lg"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                {page.title}
-              </Link>
-            ))}
+            {headerMenuItems.length > 0 ? (
+              // Use dynamic header menu items
+              headerMenuItems.map((item) => (
+                <Link
+                  key={item.id}
+                  to={item.url}
+                  className="text-lg"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {item.name}
+                </Link>
+              ))
+            ) : (
+              // Fallback to categories + pages
+              <>
+                {categories.map((cat) => (
+                  <button
+                    key={cat.id}
+                    className="text-lg"
+                    onClick={() => {
+                      setFilters({ ...filters, categories: [cat.id] });
+                      setMobileMenuOpen(false);
+                    }}
+                  >
+                    {cat.name}
+                  </button>
+                ))}
+                {pages.map((page) => (
+                  <Link
+                    key={page.id}
+                    to={`/store/${store.slug}/page/${page.slug}`}
+                    className="text-lg"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    {page.title}
+                  </Link>
+                ))}
+              </>
+            )}
           </nav>
         </div>
       )}
@@ -554,13 +590,23 @@ export default function BaseStorefrontTheme({ store, products, config }: BaseSto
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold">Information</h4>
+              <h4 className="font-semibold">Links</h4>
               <ul className="mt-2 space-y-2 text-sm" style={{ color: effectiveColors.foregroundMuted }}>
-                {pages.slice(0, 4).map((page) => (
-                  <li key={page.id}>
-                    <Link to={`/store/${store.slug}/page/${page.slug}`}>{page.title}</Link>
-                  </li>
-                ))}
+                {footerMenuItems.length > 0 ? (
+                  // Use dynamic footer menu items
+                  footerMenuItems.slice(0, 6).map((item) => (
+                    <li key={item.id}>
+                      <Link to={item.url}>{item.name}</Link>
+                    </li>
+                  ))
+                ) : (
+                  // Fallback to pages
+                  pages.slice(0, 4).map((page) => (
+                    <li key={page.id}>
+                      <Link to={`/store/${store.slug}/page/${page.slug}`}>{page.title}</Link>
+                    </li>
+                  ))
+                )}
               </ul>
             </div>
             <div>
