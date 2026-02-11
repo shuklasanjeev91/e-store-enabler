@@ -10,6 +10,7 @@ import {
   X,
   Image as ImageIcon,
   Upload,
+  Trash2,
 } from "lucide-react";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import { Button } from "@/components/ui/button";
@@ -28,11 +29,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useSectionContent, type TestimonialItem } from "@/hooks/useSectionContent";
 
 interface StoreData {
   id: string;
   name: string;
   slug: string;
+  description: string | null;
   status: string;
   logo_url: string | null;
   theme: string;
@@ -120,6 +123,8 @@ export default function CustomizeTheme() {
   const [mobileBanners, setMobileBanners] = useState<Banner[]>([]);
   const [desktopBanners, setDesktopBanners] = useState<Banner[]>([]);
   const [bannerTab, setBannerTab] = useState<"active" | "previously">("active");
+
+  const { sectionContent, updateSection, saveAllSections } = useSectionContent(store?.id ?? null);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -247,6 +252,9 @@ export default function CustomizeTheme() {
         if (error) throw error;
         if (data) setSettings(data as ThemeSettings);
       }
+
+      // Also save section content
+      await saveAllSections();
 
       toast({
         title: "Settings saved!",
@@ -448,6 +456,10 @@ export default function CustomizeTheme() {
     { id: "header", label: "Header & Favicon" },
     { id: "banners", label: "Banners" },
     { id: "sections", label: "Sections" },
+    { id: "hero-content", label: "Hero Content" },
+    { id: "brand-story-content", label: "Brand Story" },
+    { id: "testimonials-content", label: "Testimonials" },
+    { id: "footer-content", label: "Footer Content" },
     { id: "fonts", label: "Fonts" },
     { id: "advanced", label: "Advanced" },
   ];
@@ -1070,6 +1082,219 @@ export default function CustomizeTheme() {
                         updateSettings({ show_brand_story: checked })
                       }
                     />
+                  </div>
+                )}
+
+                {/* Hero Content Section */}
+                {activeSection === "hero-content" && (
+                  <div className="space-y-6">
+                    <div>
+                      <h2 className="text-lg font-semibold">Hero Section</h2>
+                      <p className="text-sm text-muted-foreground">
+                        Customize the main heading, subheading, and call-to-action buttons on your storefront homepage.
+                      </p>
+                    </div>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>Heading</Label>
+                        <Input
+                          placeholder={store.name}
+                          value={sectionContent.hero.heading || ""}
+                          onChange={(e) => updateSection("hero", { heading: e.target.value })}
+                        />
+                        <p className="text-xs text-muted-foreground">Leave empty to use your store name</p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Subheading</Label>
+                        <Textarea
+                          placeholder={store.description || "Describe your store..."}
+                          value={sectionContent.hero.subheading || ""}
+                          onChange={(e) => updateSection("hero", { subheading: e.target.value })}
+                          className="min-h-[80px]"
+                        />
+                        <p className="text-xs text-muted-foreground">Leave empty to use your store description</p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Primary button text</Label>
+                          <Input
+                            placeholder="Shop Now"
+                            value={sectionContent.hero.cta_text || ""}
+                            onChange={(e) => updateSection("hero", { cta_text: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Secondary button text</Label>
+                          <Input
+                            placeholder="View Lookbook"
+                            value={sectionContent.hero.cta_secondary_text || ""}
+                            onChange={(e) => updateSection("hero", { cta_secondary_text: e.target.value })}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Brand Story Content Section */}
+                {activeSection === "brand-story-content" && (
+                  <div className="space-y-6">
+                    <div>
+                      <h2 className="text-lg font-semibold">Brand Story</h2>
+                      <p className="text-sm text-muted-foreground">
+                        Share your brand's story with customers. Enable the "Brand story" toggle in the Sections panel to display this.
+                      </p>
+                    </div>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>Section title</Label>
+                        <Input
+                          placeholder="Our Story"
+                          value={sectionContent.brand_story.title || ""}
+                          onChange={(e) => updateSection("brand_story", { title: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Story content</Label>
+                        <Textarea
+                          placeholder="We are passionate about bringing you the best products..."
+                          value={sectionContent.brand_story.content || ""}
+                          onChange={(e) => updateSection("brand_story", { content: e.target.value })}
+                          className="min-h-[150px]"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Testimonials Content Section */}
+                {activeSection === "testimonials-content" && (
+                  <div className="space-y-6">
+                    <div>
+                      <h2 className="text-lg font-semibold">Customer Testimonials</h2>
+                      <p className="text-sm text-muted-foreground">
+                        Add real customer testimonials to build trust. Enable the "Customer testimonials" toggle in Sections to display these.
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Section title</Label>
+                      <Input
+                        placeholder="What Our Customers Say"
+                        value={sectionContent.testimonials.title || ""}
+                        onChange={(e) => updateSection("testimonials", { title: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-4">
+                      {(sectionContent.testimonials.items || []).map((item, index) => (
+                        <div key={index} className="rounded-lg border p-4 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium">Testimonial {index + 1}</span>
+                            {(sectionContent.testimonials.items || []).length > 1 && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  const items = [...(sectionContent.testimonials.items || [])];
+                                  items.splice(index, 1);
+                                  updateSection("testimonials", { items });
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            )}
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Customer name</Label>
+                            <Input
+                              placeholder="Jane Doe"
+                              value={item.name}
+                              onChange={(e) => {
+                                const items = [...(sectionContent.testimonials.items || [])];
+                                items[index] = { ...items[index], name: e.target.value };
+                                updateSection("testimonials", { items });
+                              }}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Review text</Label>
+                            <Textarea
+                              placeholder="This store has the best products..."
+                              value={item.text}
+                              onChange={(e) => {
+                                const items = [...(sectionContent.testimonials.items || [])];
+                                items[index] = { ...items[index], text: e.target.value };
+                                updateSection("testimonials", { items });
+                              }}
+                              className="min-h-[60px]"
+                            />
+                          </div>
+                        </div>
+                      ))}
+                      {(sectionContent.testimonials.items || []).length < 6 && (
+                        <Button
+                          variant="outline"
+                          className="w-full"
+                          onClick={() => {
+                            const items = [...(sectionContent.testimonials.items || [])];
+                            items.push({ name: "", text: "", rating: 5 });
+                            updateSection("testimonials", { items });
+                          }}
+                        >
+                          <Plus className="mr-2 h-4 w-4" />
+                          Add Testimonial
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Footer Content Section */}
+                {activeSection === "footer-content" && (
+                  <div className="space-y-6">
+                    <div>
+                      <h2 className="text-lg font-semibold">Footer Content</h2>
+                      <p className="text-sm text-muted-foreground">
+                        Customize contact information and text displayed in your store's footer.
+                      </p>
+                    </div>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>Store tagline</Label>
+                        <Input
+                          placeholder="Your favorite online store"
+                          value={sectionContent.footer.tagline || ""}
+                          onChange={(e) => updateSection("footer", { tagline: e.target.value })}
+                        />
+                        <p className="text-xs text-muted-foreground">Leave empty to use your store description</p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Contact email</Label>
+                          <Input
+                            placeholder={`support@${store.slug}.com`}
+                            value={sectionContent.footer.contact_email || ""}
+                            onChange={(e) => updateSection("footer", { contact_email: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Contact phone</Label>
+                          <Input
+                            placeholder="+91 9876543210"
+                            value={sectionContent.footer.contact_phone || ""}
+                            onChange={(e) => updateSection("footer", { contact_phone: e.target.value })}
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Copyright text</Label>
+                        <Input
+                          placeholder={`© ${new Date().getFullYear()} ${store.name}. All rights reserved.`}
+                          value={sectionContent.footer.copyright_text || ""}
+                          onChange={(e) => updateSection("footer", { copyright_text: e.target.value })}
+                        />
+                        <p className="text-xs text-muted-foreground">Leave empty for the default copyright notice</p>
+                      </div>
+                    </div>
                   </div>
                 )}
 

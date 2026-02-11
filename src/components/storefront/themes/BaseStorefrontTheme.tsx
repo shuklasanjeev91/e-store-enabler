@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { CategoryThemeConfig } from "./config/themeConfig";
 import { useThemeSettings, getBackgroundStyles, getFontFamilyCSS } from "@/hooks/useThemeSettings";
 import { useStoreBranding } from "@/hooks/useStoreBranding";
+import { useSectionContent } from "@/hooks/useSectionContent";
 
 interface Product {
   id: string;
@@ -60,7 +61,7 @@ export default function BaseStorefrontTheme({ store, products, config }: BaseSto
   } = useStorefront();
 
   const { themeSettings, banners } = useThemeSettings(store.id);
-
+  const { sectionContent } = useSectionContent(store.id);
   const [filters, setFilters] = useState<FilterState>({
     categories: [],
     priceRange: [0, 100000],
@@ -373,11 +374,11 @@ export default function BaseStorefrontTheme({ store, products, config }: BaseSto
             textTransform: config.typography.headingStyle === "uppercase" ? "uppercase" : undefined,
           }}
         >
-          {store.name}
+          {sectionContent.hero.heading || store.name}
         </h1>
-        {store.description && (
+        {(sectionContent.hero.subheading || store.description) && (
           <p className="mx-auto mt-6 max-w-2xl text-lg" style={{ color: effectiveColors.foregroundMuted }}>
-            {store.description}
+            {sectionContent.hero.subheading || store.description}
           </p>
         )}
         <div className="mt-8 flex items-center justify-center gap-4">
@@ -388,7 +389,7 @@ export default function BaseStorefrontTheme({ store, products, config }: BaseSto
               color: effectiveColors.primaryForeground,
             }}
           >
-            Shop Now
+            {sectionContent.hero.cta_text || "Shop Now"}
           </button>
           {config.features.includes("lookbook") && (
             <button
@@ -399,7 +400,7 @@ export default function BaseStorefrontTheme({ store, products, config }: BaseSto
                 border: `2px solid ${effectiveColors.primary}`,
               }}
             >
-              View Lookbook
+              {sectionContent.hero.cta_secondary_text || "View Lookbook"}
             </button>
           )}
         </div>
@@ -409,7 +410,7 @@ export default function BaseStorefrontTheme({ store, products, config }: BaseSto
       {showFeaturedProduct && featuredProduct && (
         <section className="py-16" style={{ backgroundColor: effectiveColors.backgroundSecondary }}>
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <h2 className="mb-8 text-center text-2xl font-light tracking-tight">Featured Product</h2>
+            <h2 className="mb-8 text-center text-2xl font-light tracking-tight">{sectionContent.featured_product.title || "Featured Product"}</h2>
             <div className="mx-auto max-w-md">
               <ProductCard
                 product={featuredProduct}
@@ -425,9 +426,9 @@ export default function BaseStorefrontTheme({ store, products, config }: BaseSto
       {showBrandStory && (
         <section className="py-16" style={{ backgroundColor: effectiveColors.background }}>
           <div className="mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
-            <h2 className="text-2xl font-light tracking-tight">Our Story</h2>
+            <h2 className="text-2xl font-light tracking-tight">{sectionContent.brand_story.title || "Our Story"}</h2>
             <p className="mt-6 text-lg leading-relaxed" style={{ color: effectiveColors.foregroundMuted }}>
-              {store.description || "We are passionate about bringing you the best products with exceptional quality and service."}
+              {sectionContent.brand_story.content || store.description || "We are passionate about bringing you the best products with exceptional quality and service."}
             </p>
           </div>
         </section>
@@ -533,13 +534,13 @@ export default function BaseStorefrontTheme({ store, products, config }: BaseSto
           }}
         >
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <h2 className="mb-12 text-center text-2xl font-light tracking-tight">What Our Customers Say</h2>
+            <h2 className="mb-12 text-center text-2xl font-light tracking-tight">{sectionContent.testimonials.title || "What Our Customers Say"}</h2>
             <div className="grid gap-8 md:grid-cols-3">
-              {[
+              {(sectionContent.testimonials.items || [
                 { name: "Sarah M.", text: "Amazing quality products! Fast shipping and excellent customer service." },
                 { name: "John D.", text: "I've been a loyal customer for years. The quality never disappoints." },
                 { name: "Emily R.", text: "Best online shopping experience I've ever had. Highly recommend!" },
-              ].map((testimonial, i) => (
+              ]).filter(t => t.name && t.text).map((testimonial, i) => (
                 <div 
                   key={i} 
                   className="rounded-lg p-6"
@@ -572,7 +573,7 @@ export default function BaseStorefrontTheme({ store, products, config }: BaseSto
                 {store.name}
               </h4>
               <p className="mt-2 text-sm" style={{ color: effectiveColors.foregroundMuted }}>
-                {store.description || "Your favorite online store"}
+                {sectionContent.footer.tagline || store.description || "Your favorite online store"}
               </p>
             </div>
             <div>
@@ -609,14 +610,14 @@ export default function BaseStorefrontTheme({ store, products, config }: BaseSto
             <div>
               <h4 className="font-semibold">Contact</h4>
               <ul className="mt-2 space-y-2 text-sm" style={{ color: effectiveColors.foregroundMuted }}>
-                <li>support@{store.slug}.com</li>
-                <li>+91 9876543210</li>
+                <li>{sectionContent.footer.contact_email || `support@${store.slug}.com`}</li>
+                <li>{sectionContent.footer.contact_phone || "+91 9876543210"}</li>
               </ul>
             </div>
           </div>
           <div className="mt-8 border-t pt-8 text-center" style={{ borderColor: effectiveColors.border }}>
             <p className="text-sm" style={{ color: effectiveColors.foregroundMuted }}>
-              © {new Date().getFullYear()} {store.name}. All rights reserved.
+              {sectionContent.footer.copyright_text || `© ${new Date().getFullYear()} ${store.name}. All rights reserved.`}
             </p>
           </div>
         </div>
