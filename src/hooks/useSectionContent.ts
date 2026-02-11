@@ -45,7 +45,14 @@ export interface NewsletterContent {
   button_text?: string;
 }
 
-export type SectionKey = "hero" | "brand_story" | "testimonials" | "featured_product" | "footer" | "newsletter";
+export interface LabelsContent {
+  shop_all?: string;
+  featured?: string;
+  collection?: string;
+  cta?: string;
+}
+
+export type SectionKey = "hero" | "brand_story" | "testimonials" | "featured_product" | "footer" | "newsletter" | "labels";
 
 export type SectionContent = {
   hero: HeroContent;
@@ -54,6 +61,7 @@ export type SectionContent = {
   featured_product: FeaturedProductContent;
   footer: FooterContent;
   newsletter: NewsletterContent;
+  labels: LabelsContent;
 };
 
 const DEFAULT_CONTENT: SectionContent = {
@@ -89,6 +97,12 @@ const DEFAULT_CONTENT: SectionContent = {
     title: "Stay Updated",
     subtitle: "Subscribe to our newsletter for the latest updates and offers.",
     button_text: "Subscribe",
+  },
+  labels: {
+    shop_all: "",
+    featured: "",
+    collection: "",
+    cta: "",
   },
 };
 
@@ -156,7 +170,7 @@ export function useSectionContent(storeId: string | null) {
   const saveAllSections = useCallback(async () => {
     if (!storeId) return false;
 
-    const sections: SectionKey[] = ["hero", "brand_story", "testimonials", "featured_product", "footer", "newsletter"];
+    const sections: SectionKey[] = ["hero", "brand_story", "testimonials", "featured_product", "footer", "newsletter", "labels"];
     
     const rows = sections.map((key) => ({
       store_id: storeId,
