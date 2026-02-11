@@ -1,4 +1,4 @@
-import { ShoppingBag, Search, Menu, X, Heart, User, ChevronRight, ArrowRight, Star, ChevronLeft, MapPin, Sparkles, Leaf, Zap, BookOpen, Baby, Gem, Home, Palette, Dumbbell, PawPrint, Car, HeartPulse, TreePine, Plane } from "lucide-react";
+import { ShoppingBag, Search, Menu, X, Heart, User, ChevronRight, ArrowRight, Star, ChevronLeft, ChevronDown, MapPin, Sparkles, Leaf, Zap, BookOpen, Baby, Gem, Home, Palette, Dumbbell, PawPrint, Car, HeartPulse, TreePine, Plane } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { useStorefront } from "@/contexts/StorefrontContext";
@@ -86,7 +86,11 @@ const categoryLabels: Record<string, { shopAll: string; featured: string; collec
 export default function BaseStorefrontTheme({ store, products, config }: BaseStorefrontThemeProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  
+  const [activeMegaMenu, setActiveMegaMenu] = useState<string | null>(null);
+  const [mobileExpandedCat, setMobileExpandedCat] = useState<string | null>(null);
+  const [mobileExpandedSubCat, setMobileExpandedSubCat] = useState<string | null>(null);
+  const megaMenuTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [hoveredL1, setHoveredL1] = useState<string | null>(null);
   const {
     setStoreId,
     setCurrency,
@@ -204,6 +208,11 @@ export default function BaseStorefrontTheme({ store, products, config }: BaseSto
     productCount: products.filter(p => p.category_id === cat.id).length,
     coverImage: cat.image_url || products.find(p => p.category_id === cat.id)?.images?.[0],
   })).filter(cat => cat.productCount > 0);
+
+  // Build 3-level category hierarchy
+  const level1Categories = categories.filter(c => !c.parent_id);
+  const getChildren = (parentId: string) => categories.filter(c => c.parent_id === parentId);
+  const hasCategoryTree = level1Categories.length > 0;
 
   const heroHasImage = !!sectionContent.hero.background_image;
 
@@ -829,21 +838,140 @@ export default function BaseStorefrontTheme({ store, products, config }: BaseSto
           </div>
         </div>
 
-        {/* Bottom tier: Navigation - only store admin menus */}
-        {headerMenuItems.length > 0 && (
-          <nav className="hidden border-t md:block" style={{ borderColor: effectiveColors.border }}>
-            <div className="mx-auto flex max-w-7xl items-center justify-center gap-1 px-4 py-0 sm:px-6 lg:px-8">
-              <Link to={`/store/${store.slug}`} className="px-4 py-3 text-sm font-medium transition-colors hover:opacity-70" style={{ color: effectiveColors.foreground }}>
-                Home
+        {/* Bottom tier: Navigation with Category Mega Menu */}
+        <nav className="hidden border-t md:block" style={{ borderColor: effectiveColors.border }}>
+          <div className="mx-auto flex max-w-7xl items-center justify-center gap-1 px-4 py-0 sm:px-6 lg:px-8">
+            <Link to={`/store/${store.slug}`} className="px-4 py-3 text-sm font-medium transition-colors hover:opacity-70" style={{ color: effectiveColors.foreground }}>
+              Home
+            </Link>
+
+            {/* Auto-generated Category Mega Menu */}
+            {hasCategoryTree && (
+              <div
+                className="relative"
+                onMouseEnter={() => { if (megaMenuTimeoutRef.current) clearTimeout(megaMenuTimeoutRef.current); setActiveMegaMenu('categories'); if (level1Categories[0]) setHoveredL1(level1Categories[0].id); }}
+                onMouseLeave={() => { megaMenuTimeoutRef.current = setTimeout(() => { setActiveMegaMenu(null); setHoveredL1(null); }, 200); }}
+              >
+                <button className="flex items-center gap-1 px-4 py-3 text-sm font-medium transition-colors hover:opacity-70" style={{ color: effectiveColors.foreground }}>
+                  {labels.shopAll} <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${activeMegaMenu === 'categories' ? 'rotate-180' : ''}`} />
+                </button>
+
+                {activeMegaMenu === 'categories' && (
+                  <div className="absolute left-1/2 top-full z-50 -translate-x-1/2 animate-in fade-in slide-in-from-top-2 duration-200" style={{ width: 'max(700px, 50vw)', maxWidth: '900px' }}>
+                    <div className={`mt-0.5 border shadow-2xl ${borderRadiusClass}`} style={{ backgroundColor: effectiveColors.background, borderColor: effectiveColors.border }}>
+                      <div className="flex" style={{ minHeight: '340px' }}>
+                        {/* Level 1 - Left column */}
+                        <div className="w-56 flex-shrink-0 border-r py-4" style={{ borderColor: effectiveColors.border }}>
+                          <p className="mb-2 px-5 text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: effectiveColors.foregroundMuted }}>Categories</p>
+                          {level1Categories.map((l1) => {
+                            const l1Children = getChildren(l1.id);
+                            return (
+                              <button
+                                key={l1.id}
+                                className={`flex w-full items-center justify-between px-5 py-2.5 text-left text-sm font-medium transition-all`}
+                                style={{
+                                  backgroundColor: hoveredL1 === l1.id ? `${effectiveColors.primary}10` : 'transparent',
+                                  color: hoveredL1 === l1.id ? effectiveColors.primary : effectiveColors.foreground,
+                                  borderRight: hoveredL1 === l1.id ? `2px solid ${effectiveColors.primary}` : '2px solid transparent',
+                                }}
+                                onMouseEnter={() => setHoveredL1(l1.id)}
+                                onClick={() => { setFilters({ ...filters, categories: [l1.id] }); setActiveMegaMenu(null); }}
+                              >
+                                <span className="flex items-center gap-2.5">
+                                  {l1.image_url && <img src={l1.image_url} alt="" className="h-7 w-7 rounded-full object-cover" />}
+                                  {l1.name}
+                                </span>
+                                {l1Children.length > 0 && <ChevronRight className="h-3.5 w-3.5 opacity-40" />}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {/* Level 2 & 3 - Right panel */}
+                        <div className="flex-1 overflow-y-auto p-6">
+                          {hoveredL1 && (() => {
+                            const l2Cats = getChildren(hoveredL1);
+                            const parentCat = level1Categories.find(c => c.id === hoveredL1);
+                            if (l2Cats.length === 0) {
+                              return (
+                                <div className="flex h-full flex-col items-center justify-center text-center">
+                                  {parentCat?.image_url && <img src={parentCat.image_url} alt="" className={`mb-4 h-32 w-32 object-cover ${borderRadiusClass}`} />}
+                                  <p className="text-lg font-semibold" style={{ fontFamily: config.typography.headingFamily }}>{parentCat?.name}</p>
+                                  <button
+                                    className={`mt-4 px-6 py-2 text-sm font-semibold transition-all hover:opacity-90 ${borderRadiusClass}`}
+                                    style={{ backgroundColor: effectiveColors.primary, color: effectiveColors.primaryForeground }}
+                                    onClick={() => { setFilters({ ...filters, categories: [hoveredL1] }); setActiveMegaMenu(null); }}
+                                  >
+                                    {labels.cta}
+                                  </button>
+                                </div>
+                              );
+                            }
+                            return (
+                              <div className="grid grid-cols-2 gap-x-8 gap-y-6 lg:grid-cols-3">
+                                {l2Cats.map((l2) => {
+                                  const l3Cats = getChildren(l2.id);
+                                  return (
+                                    <div key={l2.id}>
+                                      <button
+                                        className="mb-2 flex items-center gap-2 text-sm font-bold transition-colors hover:opacity-70"
+                                        style={{ color: effectiveColors.primary }}
+                                        onClick={() => { setFilters({ ...filters, categories: [l2.id] }); setActiveMegaMenu(null); }}
+                                      >
+                                        {l2.image_url && <img src={l2.image_url} alt="" className="h-6 w-6 rounded-full object-cover" />}
+                                        {l2.name}
+                                      </button>
+                                      {l3Cats.length > 0 && (
+                                        <ul className="space-y-1.5">
+                                          {l3Cats.map((l3) => (
+                                            <li key={l3.id}>
+                                              <button
+                                                className="text-sm transition-colors hover:opacity-70"
+                                                style={{ color: effectiveColors.foregroundMuted }}
+                                                onClick={() => { setFilters({ ...filters, categories: [l3.id] }); setActiveMegaMenu(null); }}
+                                              >
+                                                {l3.name}
+                                              </button>
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      </div>
+
+                      {/* Bottom bar */}
+                      <div className="flex items-center justify-between border-t px-6 py-3" style={{ borderColor: effectiveColors.border }}>
+                        <span className="text-xs" style={{ color: effectiveColors.foregroundMuted }}>
+                          {categories.length} categories available
+                        </span>
+                        <button
+                          className="flex items-center gap-1 text-xs font-semibold transition-colors hover:opacity-70"
+                          style={{ color: effectiveColors.primary }}
+                          onClick={() => { setFilters({ ...filters, categories: [] }); setActiveMegaMenu(null); }}
+                        >
+                          View All Products <ArrowRight className="h-3 w-3" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Store admin header menu items */}
+            {headerMenuItems.map((item) => (
+              <Link key={item.id} to={item.url} className="px-4 py-3 text-sm font-medium transition-colors hover:opacity-70" style={{ color: effectiveColors.foreground }}>
+                {item.name}
               </Link>
-              {headerMenuItems.map((item) => (
-                <Link key={item.id} to={item.url} className="px-4 py-3 text-sm font-medium transition-colors hover:opacity-70" style={{ color: effectiveColors.foreground }}>
-                  {item.name}
-                </Link>
-              ))}
-            </div>
-          </nav>
-        )}
+            ))}
+          </div>
+        </nav>
 
         {customer && (
           <div className="py-1.5 text-center text-xs" style={{ backgroundColor: effectiveColors.backgroundSecondary, color: effectiveColors.foregroundMuted }}>
@@ -870,14 +998,88 @@ export default function BaseStorefrontTheme({ store, products, config }: BaseSto
               <Link to={`/store/${store.slug}`} className="rounded-xl px-4 py-3.5 text-sm font-medium transition-colors hover:bg-black/5" onClick={() => setMobileMenuOpen(false)}>
                 Home
               </Link>
-              <button className="rounded-xl px-4 py-3.5 text-left text-sm font-medium transition-colors hover:bg-black/5" onClick={() => { setFilters({ ...filters, categories: [] }); setMobileMenuOpen(false); }}>
-                {labels.shopAll}
-              </button>
-              {headerMenuItems.map((item) => (
-                <Link key={item.id} to={item.url} className="rounded-xl px-4 py-3.5 text-sm font-medium transition-colors hover:bg-black/5" onClick={() => setMobileMenuOpen(false)}>
-                  {item.name}
-                </Link>
-              ))}
+
+              {/* Mobile 3-level category accordion */}
+              {level1Categories.length > 0 && (
+                <>
+                  <div className="mt-2 px-4 py-2">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.15em]" style={{ color: effectiveColors.foregroundMuted }}>Categories</p>
+                  </div>
+                  {level1Categories.map((l1) => {
+                    const l2Cats = getChildren(l1.id);
+                    const isExpanded = mobileExpandedCat === l1.id;
+                    return (
+                      <div key={l1.id}>
+                        <button
+                          className="flex w-full items-center justify-between rounded-xl px-4 py-3 text-left text-sm font-medium transition-colors hover:bg-black/5"
+                          onClick={() => {
+                            if (l2Cats.length > 0) {
+                              setMobileExpandedCat(isExpanded ? null : l1.id);
+                              setMobileExpandedSubCat(null);
+                            } else {
+                              setFilters({ ...filters, categories: [l1.id] });
+                              setMobileMenuOpen(false);
+                            }
+                          }}
+                        >
+                          <span className="flex items-center gap-2.5">
+                            {l1.image_url && <img src={l1.image_url} alt="" className="h-7 w-7 rounded-full object-cover" />}
+                            {l1.name}
+                          </span>
+                          {l2Cats.length > 0 && <ChevronDown className={`h-4 w-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} style={{ color: effectiveColors.foregroundMuted }} />}
+                        </button>
+                        {isExpanded && l2Cats.map((l2) => {
+                          const l3Cats = getChildren(l2.id);
+                          const isSubExpanded = mobileExpandedSubCat === l2.id;
+                          return (
+                            <div key={l2.id} className="pl-6">
+                              <button
+                                className="flex w-full items-center justify-between rounded-lg px-4 py-2.5 text-left text-sm transition-colors hover:bg-black/5"
+                                style={{ color: effectiveColors.primary, fontWeight: 600 }}
+                                onClick={() => {
+                                  if (l3Cats.length > 0) {
+                                    setMobileExpandedSubCat(isSubExpanded ? null : l2.id);
+                                  } else {
+                                    setFilters({ ...filters, categories: [l2.id] });
+                                    setMobileMenuOpen(false);
+                                  }
+                                }}
+                              >
+                                <span className="flex items-center gap-2">
+                                  {l2.image_url && <img src={l2.image_url} alt="" className="h-5 w-5 rounded-full object-cover" />}
+                                  {l2.name}
+                                </span>
+                                {l3Cats.length > 0 && <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isSubExpanded ? 'rotate-180' : ''}`} />}
+                              </button>
+                              {isSubExpanded && l3Cats.map((l3) => (
+                                <button
+                                  key={l3.id}
+                                  className="w-full rounded-lg px-8 py-2 text-left text-sm transition-colors hover:bg-black/5"
+                                  style={{ color: effectiveColors.foregroundMuted }}
+                                  onClick={() => { setFilters({ ...filters, categories: [l3.id] }); setMobileMenuOpen(false); }}
+                                >
+                                  {l3.name}
+                                </button>
+                              ))}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
+                </>
+              )}
+
+              {/* Store admin header menu items */}
+              {headerMenuItems.length > 0 && (
+                <div className="mt-2 border-t pt-2" style={{ borderColor: effectiveColors.border }}>
+                  {headerMenuItems.map((item) => (
+                    <Link key={item.id} to={item.url} className="rounded-xl px-4 py-3.5 text-sm font-medium transition-colors hover:bg-black/5" onClick={() => setMobileMenuOpen(false)}>
+                      {item.name}
+                    </Link>
+                  ))}
+                </div>
+              )}
             </nav>
           </div>
         </div>
