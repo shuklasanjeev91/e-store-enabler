@@ -937,6 +937,7 @@ export type Database = {
           font_family: string
           id: string
           primary_color: string | null
+          section_order: string[] | null
           show_add_to_bag_button: boolean
           show_brand_story: boolean
           show_featured_product: boolean
@@ -956,6 +957,7 @@ export type Database = {
           font_family?: string
           id?: string
           primary_color?: string | null
+          section_order?: string[] | null
           show_add_to_bag_button?: boolean
           show_brand_story?: boolean
           show_featured_product?: boolean
@@ -975,6 +977,7 @@ export type Database = {
           font_family?: string
           id?: string
           primary_color?: string | null
+          section_order?: string[] | null
           show_add_to_bag_button?: boolean
           show_brand_story?: boolean
           show_featured_product?: boolean

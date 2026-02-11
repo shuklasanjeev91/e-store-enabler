@@ -160,6 +160,206 @@ export default function BaseStorefrontTheme({ store, products, config }: BaseSto
 
   const heroHasImage = !!sectionContent.hero.background_image;
 
+  const DEFAULT_SECTION_ORDER = ['hero', 'collections', 'featured_product', 'brand_story', 'products', 'testimonials', 'newsletter'];
+  const sectionOrder = themeSettings?.section_order || DEFAULT_SECTION_ORDER;
+
+  // Section renderers mapped by key
+  const renderSection = (sectionId: string) => {
+    switch (sectionId) {
+      case 'hero':
+        return (
+          <section
+            key="hero"
+            className="relative overflow-hidden"
+            style={{
+              backgroundColor: heroHasImage ? undefined : effectiveColors.backgroundSecondary,
+              minHeight: heroHasImage ? "70vh" : undefined,
+            }}
+          >
+            {heroHasImage && (
+              <>
+                <img src={sectionContent.hero.background_image} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                <div className="absolute inset-0 bg-black/40" />
+              </>
+            )}
+            <div className={`relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 ${heroHasImage ? "flex min-h-[70vh] items-center py-20" : "py-16 md:py-24"}`}>
+              <div className={heroHasImage ? "max-w-xl" : "text-center"}>
+                {config.features.includes("lookbook") && (
+                  <p className={`mb-4 text-sm font-semibold uppercase tracking-widest ${heroHasImage ? "text-white/80" : ""}`} style={heroHasImage ? {} : { color: effectiveColors.primary }}>
+                    New Collection
+                  </p>
+                )}
+                <h1
+                  className={`text-4xl md:text-5xl lg:text-6xl xl:text-7xl leading-[1.1] ${heroHasImage ? "text-white" : ""}`}
+                  style={{ fontFamily: config.typography.headingFamily, fontWeight: config.typography.headingWeight, letterSpacing: config.typography.letterSpacing, textTransform: config.typography.headingStyle === "uppercase" ? "uppercase" : undefined }}
+                >
+                  {sectionContent.hero.heading || store.name}
+                </h1>
+                {(sectionContent.hero.subheading || store.description) && (
+                  <p className={`mt-6 max-w-lg text-base md:text-lg leading-relaxed ${heroHasImage ? "text-white/80" : ""} ${!heroHasImage ? "mx-auto" : ""}`} style={heroHasImage ? {} : { color: effectiveColors.foregroundMuted }}>
+                    {sectionContent.hero.subheading || store.description}
+                  </p>
+                )}
+                <div className={`mt-8 flex items-center gap-4 ${!heroHasImage ? "justify-center" : ""}`}>
+                  <button className={`group inline-flex items-center gap-2 px-8 py-3.5 text-sm font-semibold transition-all hover:gap-3 ${borderRadiusClass}`} style={{ backgroundColor: heroHasImage ? "#ffffff" : effectiveColors.primary, color: heroHasImage ? "#000000" : effectiveColors.primaryForeground }}>
+                    {sectionContent.hero.cta_text || "Shop Now"}
+                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+        );
+
+      case 'collections':
+        if (categoriesWithProducts.length === 0) return null;
+        return (
+          <section key="collections" className="py-16 md:py-20" style={{ backgroundColor: effectiveColors.background }}>
+            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+              <div className="mb-10 flex items-end justify-between">
+                <div>
+                  <h2 className="text-2xl md:text-3xl" style={{ fontFamily: config.typography.headingFamily, fontWeight: config.typography.headingWeight }}>Shop by Category</h2>
+                  <p className="mt-2 text-sm" style={{ color: effectiveColors.foregroundMuted }}>Browse our curated collections</p>
+                </div>
+              </div>
+              <div className={`grid gap-4 ${categoriesWithProducts.length === 1 ? "grid-cols-1" : categoriesWithProducts.length === 2 ? "grid-cols-1 md:grid-cols-2" : categoriesWithProducts.length === 3 ? "grid-cols-1 md:grid-cols-3" : "grid-cols-2 md:grid-cols-4"}`}>
+                {categoriesWithProducts.slice(0, 8).map((cat, idx) => (
+                  <button key={cat.id} className={`group relative overflow-hidden ${borderRadiusClass} ${idx === 0 && categoriesWithProducts.length > 2 ? "md:col-span-2 md:row-span-2" : ""}`} style={{ aspectRatio: idx === 0 && categoriesWithProducts.length > 2 ? "1/1" : "4/5" }} onClick={() => setFilters({ ...filters, categories: [cat.id] })}>
+                    {cat.coverImage ? <img src={cat.coverImage} alt={cat.name} className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" /> : <div className="absolute inset-0" style={{ backgroundColor: effectiveColors.backgroundSecondary }} />}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                    <div className="absolute inset-x-0 bottom-0 p-5">
+                      <h3 className="text-lg font-semibold text-white md:text-xl">{cat.name}</h3>
+                      <p className="mt-1 flex items-center gap-1 text-sm text-white/70">{cat.productCount} product{cat.productCount !== 1 ? "s" : ""}<ChevronRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" /></p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </section>
+        );
+
+      case 'featured_product':
+        if (!showFeaturedProduct || !featuredProduct) return null;
+        return (
+          <section key="featured_product" className="py-16" style={{ backgroundColor: effectiveColors.backgroundSecondary }}>
+            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+              <h2 className="mb-8 text-center text-2xl" style={{ fontFamily: config.typography.headingFamily, fontWeight: config.typography.headingWeight }}>{sectionContent.featured_product.title || "Featured Product"}</h2>
+              <div className="mx-auto max-w-sm">
+                <ProductCard product={featuredProduct} storeSlug={store.slug} variant={isDark ? "bold" : "minimal"} primaryColor={effectiveColors.primary} accentColor={effectiveColors.accent} />
+              </div>
+            </div>
+          </section>
+        );
+
+      case 'brand_story':
+        if (!showBrandStory) return null;
+        return (
+          <section key="brand_story" className="py-16 md:py-20" style={{ backgroundColor: effectiveColors.background }}>
+            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+              <div className="grid items-center gap-12 md:grid-cols-2">
+                {sectionContent.brand_story.image_url ? (
+                  <div className={`aspect-[4/3] overflow-hidden ${borderRadiusClass}`}><img src={sectionContent.brand_story.image_url} alt="" className="h-full w-full object-cover" /></div>
+                ) : (
+                  <div className={`aspect-[4/3] ${borderRadiusClass}`} style={{ backgroundColor: effectiveColors.backgroundSecondary }} />
+                )}
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-widest" style={{ color: effectiveColors.primary }}>Our Story</p>
+                  <h2 className="mt-3 text-3xl md:text-4xl" style={{ fontFamily: config.typography.headingFamily, fontWeight: config.typography.headingWeight }}>{sectionContent.brand_story.title || "Our Story"}</h2>
+                  <p className="mt-6 text-base leading-relaxed" style={{ color: effectiveColors.foregroundMuted }}>{sectionContent.brand_story.content || store.description || "We are passionate about bringing you the best products with exceptional quality and service."}</p>
+                  <button className="mt-8 inline-flex items-center gap-2 border-b-2 pb-1 text-sm font-semibold transition-colors" style={{ borderColor: effectiveColors.primary, color: effectiveColors.primary }}>Learn more <ArrowRight className="h-4 w-4" /></button>
+                </div>
+              </div>
+            </div>
+          </section>
+        );
+
+      case 'products':
+        return (
+          <section key="products" className="py-16 md:py-20" id="products" style={{ backgroundColor: effectiveColors.background }}>
+            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+              <div className="mb-10 flex items-end justify-between">
+                <div>
+                  <h2 className="text-2xl md:text-3xl" style={{ fontFamily: config.typography.headingFamily, fontWeight: config.typography.headingWeight }}>
+                    {filters.categories.length > 0 ? categories.find(c => c.id === filters.categories[0])?.name || "Products" : "All Products"}
+                  </h2>
+                  <p className="mt-1 text-sm" style={{ color: effectiveColors.foregroundMuted }}>{filteredProducts.length} product{filteredProducts.length !== 1 ? "s" : ""}</p>
+                </div>
+                {categories.length > 0 && (
+                  <div className="hidden items-center gap-2 md:flex">
+                    <button className={`px-4 py-1.5 text-sm font-medium transition-all ${borderRadiusClass}`} style={{ backgroundColor: filters.categories.length === 0 ? effectiveColors.primary : "transparent", color: filters.categories.length === 0 ? effectiveColors.primaryForeground : effectiveColors.foregroundMuted }} onClick={() => setFilters({ ...filters, categories: [] })}>All</button>
+                    {categories.slice(0, 5).map((cat) => (
+                      <button key={cat.id} className={`px-4 py-1.5 text-sm font-medium transition-all ${borderRadiusClass}`} style={{ backgroundColor: filters.categories.includes(cat.id) ? effectiveColors.primary : "transparent", color: filters.categories.includes(cat.id) ? effectiveColors.primaryForeground : effectiveColors.foregroundMuted }} onClick={() => setFilters({ ...filters, categories: filters.categories.includes(cat.id) ? filters.categories.filter((c) => c !== cat.id) : [cat.id] })}>{cat.name}</button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-8">
+                <ProductFiltersSidebar filters={filters} onFiltersChange={setFilters} maxPrice={maxPrice} />
+                <div className="flex-1">
+                  <ProductFilters filters={filters} onFiltersChange={setFilters} maxPrice={maxPrice} productCount={filteredProducts.length} />
+                  {filteredProducts.length === 0 ? (
+                    <div className="py-20 text-center">
+                      <ShoppingBag className="mx-auto h-12 w-12" style={{ color: effectiveColors.foregroundSubtle }} />
+                      <p className="mt-4" style={{ color: effectiveColors.foregroundMuted }}>No products found</p>
+                      <button className={`mt-4 px-6 py-2 ${borderRadiusClass}`} style={{ border: `1px solid ${effectiveColors.border}`, color: effectiveColors.foreground }} onClick={() => setFilters({ categories: [], priceRange: [0, maxPrice], sortBy: "newest", searchQuery: "" })}>Clear Filters</button>
+                    </div>
+                  ) : (
+                    <div className="mt-6 grid gap-x-5 gap-y-10 grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                      {filteredProducts.map((product) => (
+                        <ProductCard key={product.id} product={product} storeSlug={store.slug} variant={isDark ? "bold" : "minimal"} primaryColor={effectiveColors.primary} accentColor={effectiveColors.accent} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </section>
+        );
+
+      case 'testimonials':
+        if (!showTestimonials) return null;
+        return (
+          <section key="testimonials" className="py-16 md:py-20" style={{ backgroundColor: effectiveColors.backgroundSecondary }}>
+            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+              <div className="mb-12 text-center">
+                <h2 className="text-2xl md:text-3xl" style={{ fontFamily: config.typography.headingFamily, fontWeight: config.typography.headingWeight }}>{sectionContent.testimonials.title || "What Our Customers Say"}</h2>
+              </div>
+              <div className="grid gap-6 md:grid-cols-3">
+                {(sectionContent.testimonials.items || [
+                  { name: "Sarah M.", text: "Amazing quality products! Fast shipping and excellent customer service.", rating: 5 },
+                  { name: "John D.", text: "I've been a loyal customer for years. The quality never disappoints.", rating: 5 },
+                  { name: "Emily R.", text: "Best online shopping experience I've ever had. Highly recommend!", rating: 5 },
+                ]).filter(t => t.name && t.text).map((testimonial, i) => (
+                  <div key={i} className={`${borderRadiusClass} p-6 md:p-8`} style={{ backgroundColor: effectiveColors.background, border: `1px solid ${effectiveColors.border}` }}>
+                    <div className="mb-4 flex gap-1">{[...Array(testimonial.rating || 5)].map((_, s) => (<Star key={s} className="h-4 w-4 fill-yellow-400 text-yellow-400" />))}</div>
+                    <p className="text-sm leading-relaxed md:text-base" style={{ color: effectiveColors.foregroundMuted }}>"{testimonial.text}"</p>
+                    <p className="mt-4 text-sm font-semibold">— {testimonial.name}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        );
+
+      case 'newsletter':
+        return (
+          <section key="newsletter" className="py-16 md:py-20" style={{ backgroundColor: effectiveColors.primary }}>
+            <div className="mx-auto max-w-2xl px-4 text-center sm:px-6">
+              <h2 className="text-2xl md:text-3xl" style={{ fontFamily: config.typography.headingFamily, fontWeight: config.typography.headingWeight, color: effectiveColors.primaryForeground }}>{sectionContent.newsletter.title || "Stay Updated"}</h2>
+              <p className="mt-3 text-sm opacity-80" style={{ color: effectiveColors.primaryForeground }}>{sectionContent.newsletter.subtitle || "Subscribe to our newsletter for the latest updates and offers."}</p>
+              <div className="mx-auto mt-8 flex max-w-md gap-3">
+                <input type="email" placeholder="Enter your email" className={`flex-1 px-4 py-3 text-sm ${borderRadiusClass} border-0 focus:outline-none focus:ring-2`} style={{ backgroundColor: `${effectiveColors.primaryForeground}15`, color: effectiveColors.primaryForeground, caretColor: effectiveColors.primaryForeground }} />
+                <button className={`px-6 py-3 text-sm font-semibold ${borderRadiusClass} transition-opacity hover:opacity-90`} style={{ backgroundColor: effectiveColors.primaryForeground, color: effectiveColors.primary }}>{sectionContent.newsletter.button_text || "Subscribe"}</button>
+              </div>
+            </div>
+          </section>
+        );
+
+      default:
+        return null;
+    }
+  };
+
   return (
     <div
       className="min-h-screen"
@@ -308,358 +508,8 @@ export default function BaseStorefrontTheme({ store, products, config }: BaseSto
       {/* Banner Carousel */}
       {banners.length > 0 && <BannerCarousel banners={banners} />}
 
-      {/* Hero Section - Full-bleed Shopify-style */}
-      <section
-        className="relative overflow-hidden"
-        style={{
-          backgroundColor: heroHasImage ? undefined : effectiveColors.backgroundSecondary,
-          minHeight: heroHasImage ? "70vh" : undefined,
-        }}
-      >
-        {/* Background Image */}
-        {heroHasImage && (
-          <>
-            <img
-              src={sectionContent.hero.background_image}
-              alt=""
-              className="absolute inset-0 h-full w-full object-cover"
-            />
-            <div className="absolute inset-0 bg-black/40" />
-          </>
-        )}
-
-        <div className={`relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 ${heroHasImage ? "flex min-h-[70vh] items-center py-20" : "py-16 md:py-24"}`}>
-          <div className={heroHasImage ? "max-w-xl" : "text-center"}>
-            {/* Overline text */}
-            {config.features.includes("lookbook") && (
-              <p
-                className={`mb-4 text-sm font-semibold uppercase tracking-widest ${heroHasImage ? "text-white/80" : ""}`}
-                style={heroHasImage ? {} : { color: effectiveColors.primary }}
-              >
-                New Collection
-              </p>
-            )}
-
-            <h1
-              className={`text-4xl md:text-5xl lg:text-6xl xl:text-7xl leading-[1.1] ${heroHasImage ? "text-white" : ""}`}
-              style={{
-                fontFamily: config.typography.headingFamily,
-                fontWeight: config.typography.headingWeight,
-                letterSpacing: config.typography.letterSpacing,
-                textTransform: config.typography.headingStyle === "uppercase" ? "uppercase" : undefined,
-              }}
-            >
-              {sectionContent.hero.heading || store.name}
-            </h1>
-
-            {(sectionContent.hero.subheading || store.description) && (
-              <p className={`mt-6 max-w-lg text-base md:text-lg leading-relaxed ${heroHasImage ? "text-white/80" : ""} ${!heroHasImage ? "mx-auto" : ""}`}
-                style={heroHasImage ? {} : { color: effectiveColors.foregroundMuted }}
-              >
-                {sectionContent.hero.subheading || store.description}
-              </p>
-            )}
-
-            <div className={`mt-8 flex items-center gap-4 ${!heroHasImage ? "justify-center" : ""}`}>
-              <button
-                className={`group inline-flex items-center gap-2 px-8 py-3.5 text-sm font-semibold transition-all hover:gap-3 ${borderRadiusClass}`}
-                style={{
-                  backgroundColor: heroHasImage ? "#ffffff" : effectiveColors.primary,
-                  color: heroHasImage ? "#000000" : effectiveColors.primaryForeground,
-                }}
-              >
-                {sectionContent.hero.cta_text || "Shop Now"}
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Collection Showcase - Shopify-style visual category blocks */}
-      {categoriesWithProducts.length > 0 && (
-        <section className="py-16 md:py-20" style={{ backgroundColor: effectiveColors.background }}>
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="mb-10 flex items-end justify-between">
-              <div>
-                <h2
-                  className="text-2xl md:text-3xl"
-                  style={{
-                    fontFamily: config.typography.headingFamily,
-                    fontWeight: config.typography.headingWeight,
-                  }}
-                >
-                  Shop by Category
-                </h2>
-                <p className="mt-2 text-sm" style={{ color: effectiveColors.foregroundMuted }}>
-                  Browse our curated collections
-                </p>
-              </div>
-            </div>
-
-            <div className={`grid gap-4 ${
-              categoriesWithProducts.length === 1 ? "grid-cols-1" :
-              categoriesWithProducts.length === 2 ? "grid-cols-1 md:grid-cols-2" :
-              categoriesWithProducts.length === 3 ? "grid-cols-1 md:grid-cols-3" :
-              "grid-cols-2 md:grid-cols-4"
-            }`}>
-              {categoriesWithProducts.slice(0, 8).map((cat, idx) => (
-                <button
-                  key={cat.id}
-                  className={`group relative overflow-hidden ${borderRadiusClass} ${
-                    idx === 0 && categoriesWithProducts.length > 2 ? "md:col-span-2 md:row-span-2" : ""
-                  }`}
-                  style={{ aspectRatio: idx === 0 && categoriesWithProducts.length > 2 ? "1/1" : "4/5" }}
-                  onClick={() => setFilters({ ...filters, categories: [cat.id] })}
-                >
-                  {cat.coverImage ? (
-                    <img
-                      src={cat.coverImage}
-                      alt={cat.name}
-                      className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                    />
-                  ) : (
-                    <div className="absolute inset-0" style={{ backgroundColor: effectiveColors.backgroundSecondary }} />
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-                  <div className="absolute inset-x-0 bottom-0 p-5">
-                    <h3 className="text-lg font-semibold text-white md:text-xl">
-                      {cat.name}
-                    </h3>
-                    <p className="mt-1 flex items-center gap-1 text-sm text-white/70">
-                      {cat.productCount} product{cat.productCount !== 1 ? "s" : ""}
-                      <ChevronRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
-                    </p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Featured Product Section */}
-      {showFeaturedProduct && featuredProduct && (
-        <section className="py-16" style={{ backgroundColor: effectiveColors.backgroundSecondary }}>
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <h2
-              className="mb-8 text-center text-2xl"
-              style={{ fontFamily: config.typography.headingFamily, fontWeight: config.typography.headingWeight }}
-            >
-              {sectionContent.featured_product.title || "Featured Product"}
-            </h2>
-            <div className="mx-auto max-w-sm">
-              <ProductCard product={featuredProduct} storeSlug={store.slug} variant={isDark ? "bold" : "minimal"} primaryColor={effectiveColors.primary} accentColor={effectiveColors.accent} />
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Brand Story Section - Shopify-style split layout */}
-      {showBrandStory && (
-        <section className="py-16 md:py-20" style={{ backgroundColor: effectiveColors.background }}>
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="grid items-center gap-12 md:grid-cols-2">
-              {sectionContent.brand_story.image_url ? (
-                <div className={`aspect-[4/3] overflow-hidden ${borderRadiusClass}`}>
-                  <img src={sectionContent.brand_story.image_url} alt="" className="h-full w-full object-cover" />
-                </div>
-              ) : (
-                <div className={`aspect-[4/3] ${borderRadiusClass}`} style={{ backgroundColor: effectiveColors.backgroundSecondary }} />
-              )}
-              <div>
-                <p className="text-sm font-semibold uppercase tracking-widest" style={{ color: effectiveColors.primary }}>
-                  Our Story
-                </p>
-                <h2
-                  className="mt-3 text-3xl md:text-4xl"
-                  style={{ fontFamily: config.typography.headingFamily, fontWeight: config.typography.headingWeight }}
-                >
-                  {sectionContent.brand_story.title || "Our Story"}
-                </h2>
-                <p className="mt-6 text-base leading-relaxed" style={{ color: effectiveColors.foregroundMuted }}>
-                  {sectionContent.brand_story.content || store.description || "We are passionate about bringing you the best products with exceptional quality and service."}
-                </p>
-                <button
-                  className={`mt-8 inline-flex items-center gap-2 border-b-2 pb-1 text-sm font-semibold transition-colors`}
-                  style={{ borderColor: effectiveColors.primary, color: effectiveColors.primary }}
-                >
-                  Learn more <ArrowRight className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Products Section */}
-      <section className="py-16 md:py-20" id="products" style={{ backgroundColor: effectiveColors.background }}>
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          {/* Section Header */}
-          <div className="mb-10 flex items-end justify-between">
-            <div>
-              <h2
-                className="text-2xl md:text-3xl"
-                style={{ fontFamily: config.typography.headingFamily, fontWeight: config.typography.headingWeight }}
-              >
-                {filters.categories.length > 0
-                  ? categories.find(c => c.id === filters.categories[0])?.name || "Products"
-                  : "All Products"}
-              </h2>
-              <p className="mt-1 text-sm" style={{ color: effectiveColors.foregroundMuted }}>
-                {filteredProducts.length} product{filteredProducts.length !== 1 ? "s" : ""}
-              </p>
-            </div>
-
-            {/* Category pills inline */}
-            {categories.length > 0 && (
-              <div className="hidden items-center gap-2 md:flex">
-                <button
-                  className={`px-4 py-1.5 text-sm font-medium transition-all ${borderRadiusClass}`}
-                  style={{
-                    backgroundColor: filters.categories.length === 0 ? effectiveColors.primary : "transparent",
-                    color: filters.categories.length === 0 ? effectiveColors.primaryForeground : effectiveColors.foregroundMuted,
-                  }}
-                  onClick={() => setFilters({ ...filters, categories: [] })}
-                >
-                  All
-                </button>
-                {categories.slice(0, 5).map((cat) => (
-                  <button
-                    key={cat.id}
-                    className={`px-4 py-1.5 text-sm font-medium transition-all ${borderRadiusClass}`}
-                    style={{
-                      backgroundColor: filters.categories.includes(cat.id) ? effectiveColors.primary : "transparent",
-                      color: filters.categories.includes(cat.id) ? effectiveColors.primaryForeground : effectiveColors.foregroundMuted,
-                    }}
-                    onClick={() => setFilters({
-                      ...filters,
-                      categories: filters.categories.includes(cat.id)
-                        ? filters.categories.filter((c) => c !== cat.id)
-                        : [cat.id],
-                    })}
-                  >
-                    {cat.name}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="flex gap-8">
-            <ProductFiltersSidebar filters={filters} onFiltersChange={setFilters} maxPrice={maxPrice} />
-            <div className="flex-1">
-              <ProductFilters filters={filters} onFiltersChange={setFilters} maxPrice={maxPrice} productCount={filteredProducts.length} />
-              {filteredProducts.length === 0 ? (
-                <div className="py-20 text-center">
-                  <ShoppingBag className="mx-auto h-12 w-12" style={{ color: effectiveColors.foregroundSubtle }} />
-                  <p className="mt-4" style={{ color: effectiveColors.foregroundMuted }}>No products found</p>
-                  <button
-                    className={`mt-4 px-6 py-2 ${borderRadiusClass}`}
-                    style={{ border: `1px solid ${effectiveColors.border}`, color: effectiveColors.foreground }}
-                    onClick={() => setFilters({ categories: [], priceRange: [0, maxPrice], sortBy: "newest", searchQuery: "" })}
-                  >
-                    Clear Filters
-                  </button>
-                </div>
-              ) : (
-                <div className="mt-6 grid gap-x-5 gap-y-10 grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                  {filteredProducts.map((product) => (
-                    <ProductCard
-                      key={product.id}
-                      product={product}
-                      storeSlug={store.slug}
-                      variant={isDark ? "bold" : "minimal"}
-                      primaryColor={effectiveColors.primary}
-                      accentColor={effectiveColors.accent}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials Section - Shopify-style */}
-      {showTestimonials && (
-        <section className="py-16 md:py-20" style={{ backgroundColor: effectiveColors.backgroundSecondary }}>
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="mb-12 text-center">
-              <h2
-                className="text-2xl md:text-3xl"
-                style={{ fontFamily: config.typography.headingFamily, fontWeight: config.typography.headingWeight }}
-              >
-                {sectionContent.testimonials.title || "What Our Customers Say"}
-              </h2>
-            </div>
-            <div className="grid gap-6 md:grid-cols-3">
-              {(sectionContent.testimonials.items || [
-                { name: "Sarah M.", text: "Amazing quality products! Fast shipping and excellent customer service.", rating: 5 },
-                { name: "John D.", text: "I've been a loyal customer for years. The quality never disappoints.", rating: 5 },
-                { name: "Emily R.", text: "Best online shopping experience I've ever had. Highly recommend!", rating: 5 },
-              ]).filter(t => t.name && t.text).map((testimonial, i) => (
-                <div
-                  key={i}
-                  className={`${borderRadiusClass} p-6 md:p-8`}
-                  style={{ backgroundColor: effectiveColors.background, border: `1px solid ${effectiveColors.border}` }}
-                >
-                  {/* Stars */}
-                  <div className="mb-4 flex gap-1">
-                    {[...Array(testimonial.rating || 5)].map((_, s) => (
-                      <Star key={s} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                    ))}
-                  </div>
-                  <p className="text-sm leading-relaxed md:text-base" style={{ color: effectiveColors.foregroundMuted }}>
-                    "{testimonial.text}"
-                  </p>
-                  <p className="mt-4 text-sm font-semibold">— {testimonial.name}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Newsletter Section */}
-      <section className="py-16 md:py-20" style={{ backgroundColor: effectiveColors.primary }}>
-        <div className="mx-auto max-w-2xl px-4 text-center sm:px-6">
-          <h2
-            className="text-2xl md:text-3xl"
-            style={{
-              fontFamily: config.typography.headingFamily,
-              fontWeight: config.typography.headingWeight,
-              color: effectiveColors.primaryForeground,
-            }}
-          >
-            {sectionContent.newsletter.title || "Stay Updated"}
-          </h2>
-          <p className="mt-3 text-sm opacity-80" style={{ color: effectiveColors.primaryForeground }}>
-            {sectionContent.newsletter.subtitle || "Subscribe to our newsletter for the latest updates and offers."}
-          </p>
-          <div className="mx-auto mt-8 flex max-w-md gap-3">
-            <input
-              type="email"
-              placeholder="Enter your email"
-              className={`flex-1 px-4 py-3 text-sm ${borderRadiusClass} border-0 focus:outline-none focus:ring-2`}
-              style={{
-                backgroundColor: `${effectiveColors.primaryForeground}15`,
-                color: effectiveColors.primaryForeground,
-                caretColor: effectiveColors.primaryForeground,
-              }}
-            />
-            <button
-              className={`px-6 py-3 text-sm font-semibold ${borderRadiusClass} transition-opacity hover:opacity-90`}
-              style={{
-                backgroundColor: effectiveColors.primaryForeground,
-                color: effectiveColors.primary,
-              }}
-            >
-              {sectionContent.newsletter.button_text || "Subscribe"}
-            </button>
-          </div>
-        </div>
-      </section>
+      {/* Dynamic Section Rendering based on saved order */}
+      {sectionOrder.map((sectionId) => renderSection(sectionId))}
 
       {/* Footer - Shopify-style multi-column */}
       <footer style={{ backgroundColor: isDark ? effectiveColors.backgroundSecondary : "#111111", color: "#ffffff" }}>
