@@ -59,6 +59,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { useSectionContent, type TestimonialItem } from "@/hooks/useSectionContent";
 
 interface StoreData {
@@ -118,14 +119,17 @@ const FONT_OPTIONS = [
 
 const DEFAULT_SECTION_ORDER = ['hero', 'collections', 'featured_product', 'brand_story', 'products', 'testimonials', 'newsletter'];
 
-const REORDERABLE_SECTIONS = [
-  { id: 'hero', label: 'Hero Section', description: 'Main heading, background image, and CTA' },
-  { id: 'collections', label: 'Shop by Category', description: 'Visual category collection blocks' },
-  { id: 'featured_product', label: 'Featured Product', description: 'Highlight your best product' },
-  { id: 'brand_story', label: 'Brand Story', description: 'Share your brand narrative' },
-  { id: 'products', label: 'All Products', description: 'Product grid with filters' },
-  { id: 'testimonials', label: 'Testimonials', description: 'Customer reviews and ratings' },
-  { id: 'newsletter', label: 'Newsletter', description: 'Email subscription section' },
+const AVAILABLE_SECTIONS = [
+  { id: 'hero', label: 'Hero Section', description: 'Main heading, background image, and CTA', icon: '🎯', required: true },
+  { id: 'collections', label: 'Shop by Category', description: 'Visual category collection blocks', icon: '📂' },
+  { id: 'featured_product', label: 'Featured Product', description: 'Highlight your best product', icon: '⭐' },
+  { id: 'brand_story', label: 'Brand Story', description: 'Share your brand narrative', icon: '📖' },
+  { id: 'products', label: 'All Products', description: 'Product grid with filters', icon: '🛍️', required: true },
+  { id: 'testimonials', label: 'Testimonials', description: 'Customer reviews and ratings', icon: '💬' },
+  { id: 'newsletter', label: 'Newsletter', description: 'Email subscription section', icon: '📧' },
+  { id: 'custom_html', label: 'Custom HTML', description: 'Add your own HTML content', icon: '🧩' },
+  { id: 'custom_html_2', label: 'Custom HTML 2', description: 'Second custom HTML block', icon: '🧩' },
+  { id: 'custom_html_3', label: 'Custom HTML 3', description: 'Third custom HTML block', icon: '🧩' },
 ];
 
 const defaultSettings: Omit<ThemeSettings, "store_id"> = {
@@ -508,6 +512,7 @@ export default function CustomizeTheme() {
     { id: "brand-story-content", label: "Brand Story", icon: FileText, group: "Content" },
     { id: "testimonials-content", label: "Testimonials", icon: MessageSquareQuote, group: "Content" },
     { id: "newsletter-content", label: "Newsletter", icon: Mail, group: "Content" },
+    { id: "custom-html-content", label: "Custom HTML", icon: Code, group: "Content" },
     { id: "footer-content", label: "Footer", icon: Megaphone, group: "Content" },
     { id: "advanced", label: "Advanced", icon: Code, group: "Advanced" },
   ];
@@ -1115,58 +1120,64 @@ export default function CustomizeTheme() {
                 {activeSection === "sections" && (
                   <div className="space-y-6">
                     <div>
-                      <h2 className="text-lg font-semibold">Sections & Order</h2>
+                      <h2 className="text-lg font-semibold">Homepage Sections</h2>
                       <p className="text-sm text-muted-foreground">
-                        Toggle sections on/off and drag to reorder how they appear on your storefront.
+                        Add, remove, and reorder sections on your storefront homepage. Drag to reorder.
                       </p>
                     </div>
 
-                    {/* Visibility Toggles */}
+                    {/* Active Sections - Drag & Drop */}
                     <div className="space-y-3">
-                      <Label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Visibility</Label>
-                      <SettingToggle
-                        title="Featured product"
-                        description="Make your best product standout with this section."
-                        checked={settings.show_featured_product}
-                        onCheckedChange={(checked) =>
-                          updateSettings({ show_featured_product: checked })
-                        }
-                      />
-                      <SettingToggle
-                        title="Customer testimonials"
-                        description="Build trust among new buyers with testimonials from your existing customers."
-                        checked={settings.show_testimonials}
-                        onCheckedChange={(checked) =>
-                          updateSettings({ show_testimonials: checked })
-                        }
-                      />
-                      <SettingToggle
-                        title="Brand story"
-                        description="Share your brand narrative with customers."
-                        checked={settings.show_brand_story}
-                        onCheckedChange={(checked) =>
-                          updateSettings({ show_brand_story: checked })
-                        }
-                      />
-                    </div>
-
-                    {/* Drag & Drop Section Order */}
-                    <div className="space-y-3">
-                      <Label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Section Order</Label>
-                      <p className="text-xs text-muted-foreground">Drag and drop to rearrange sections on your storefront</p>
+                      <Label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Active Sections</Label>
                       <SectionOrderList
                         sectionOrder={settings.section_order || DEFAULT_SECTION_ORDER}
                         onReorder={(newOrder) => updateSettings({ section_order: newOrder })}
+                        onRemove={(id) => {
+                          const section = AVAILABLE_SECTIONS.find(s => s.id === id);
+                          if (section?.required) return;
+                          const current = settings.section_order || DEFAULT_SECTION_ORDER;
+                          updateSettings({ section_order: current.filter(s => s !== id) });
+                        }}
                       />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => updateSettings({ section_order: DEFAULT_SECTION_ORDER })}
-                        className="w-full"
-                      >
-                        Reset to default order
-                      </Button>
                     </div>
+
+                    {/* Add Section Palette */}
+                    {(() => {
+                      const currentSections = settings.section_order || DEFAULT_SECTION_ORDER;
+                      const available = AVAILABLE_SECTIONS.filter(s => !currentSections.includes(s.id));
+                      if (available.length === 0) return null;
+                      return (
+                        <div className="space-y-3">
+                          <Label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Add Section</Label>
+                          <div className="grid grid-cols-2 gap-2">
+                            {available.map((section) => (
+                              <button
+                                key={section.id}
+                                onClick={() => {
+                                  updateSettings({ section_order: [...currentSections, section.id] });
+                                }}
+                                className="flex items-center gap-3 rounded-lg border border-dashed border-muted-foreground/30 p-3 text-left transition-all hover:border-primary hover:bg-primary/5"
+                              >
+                                <span className="text-lg">{section.icon}</span>
+                                <div className="min-w-0">
+                                  <p className="text-sm font-medium truncate">{section.label}</p>
+                                  <p className="text-xs text-muted-foreground truncate">{section.description}</p>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => updateSettings({ section_order: DEFAULT_SECTION_ORDER })}
+                      className="w-full"
+                    >
+                      Reset to default
+                    </Button>
                   </div>
                 )}
 
@@ -1441,6 +1452,103 @@ export default function CustomizeTheme() {
                   </div>
                 )}
 
+                {/* Custom HTML Content Section */}
+                {activeSection === "custom-html-content" && (
+                  <div className="space-y-6">
+                    <div>
+                      <h2 className="text-lg font-semibold">Custom HTML Sections</h2>
+                      <p className="text-sm text-muted-foreground">
+                        Add custom HTML content blocks to your storefront. First add a Custom HTML section from the "Sections & Order" panel, then edit its content here.
+                      </p>
+                    </div>
+
+                    {/* Custom HTML 1 */}
+                    <div className="space-y-3 rounded-lg border p-4">
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">🧩</span>
+                        <Label className="text-sm font-semibold">Custom HTML 1</Label>
+                        {!(settings.section_order || DEFAULT_SECTION_ORDER).includes('custom_html') && (
+                          <Badge variant="secondary" className="text-[10px]">Not active</Badge>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Section title</Label>
+                        <Input
+                          placeholder="Custom Section"
+                          value={sectionContent.custom_html.title || ""}
+                          onChange={(e) => updateSection("custom_html", { title: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>HTML Content</Label>
+                        <Textarea
+                          placeholder='<div class="text-center py-8"><h2>Your content here</h2><p>Add any HTML...</p></div>'
+                          value={sectionContent.custom_html.html || ""}
+                          onChange={(e) => updateSection("custom_html", { html: e.target.value })}
+                          className="min-h-[150px] font-mono text-xs"
+                        />
+                        <p className="text-xs text-muted-foreground">Supports HTML with inline styles. JavaScript is not supported.</p>
+                      </div>
+                    </div>
+
+                    {/* Custom HTML 2 */}
+                    <div className="space-y-3 rounded-lg border p-4">
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">🧩</span>
+                        <Label className="text-sm font-semibold">Custom HTML 2</Label>
+                        {!(settings.section_order || DEFAULT_SECTION_ORDER).includes('custom_html_2') && (
+                          <Badge variant="secondary" className="text-[10px]">Not active</Badge>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Section title</Label>
+                        <Input
+                          placeholder="Custom Section 2"
+                          value={sectionContent.custom_html_2.title || ""}
+                          onChange={(e) => updateSection("custom_html_2", { title: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>HTML Content</Label>
+                        <Textarea
+                          placeholder='<div class="text-center py-8"><h2>Your content here</h2></div>'
+                          value={sectionContent.custom_html_2.html || ""}
+                          onChange={(e) => updateSection("custom_html_2", { html: e.target.value })}
+                          className="min-h-[150px] font-mono text-xs"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Custom HTML 3 */}
+                    <div className="space-y-3 rounded-lg border p-4">
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">🧩</span>
+                        <Label className="text-sm font-semibold">Custom HTML 3</Label>
+                        {!(settings.section_order || DEFAULT_SECTION_ORDER).includes('custom_html_3') && (
+                          <Badge variant="secondary" className="text-[10px]">Not active</Badge>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Section title</Label>
+                        <Input
+                          placeholder="Custom Section 3"
+                          value={sectionContent.custom_html_3.title || ""}
+                          onChange={(e) => updateSection("custom_html_3", { title: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>HTML Content</Label>
+                        <Textarea
+                          placeholder='<div class="text-center py-8"><h2>Your content here</h2></div>'
+                          value={sectionContent.custom_html_3.html || ""}
+                          onChange={(e) => updateSection("custom_html_3", { html: e.target.value })}
+                          className="min-h-[150px] font-mono text-xs"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Footer Content Section */}
                 {activeSection === "footer-content" && (
                   <div className="space-y-6">
@@ -1652,7 +1760,7 @@ function SettingToggle({
 }
 
 // Sortable section item for drag-and-drop
-function SortableSectionItem({ id }: { id: string }) {
+function SortableSectionItem({ id, onRemove }: { id: string; onRemove?: (id: string) => void }) {
   const {
     attributes,
     listeners,
@@ -1667,7 +1775,7 @@ function SortableSectionItem({ id }: { id: string }) {
     transition,
   };
 
-  const sectionInfo = REORDERABLE_SECTIONS.find(s => s.id === id);
+  const sectionInfo = AVAILABLE_SECTIONS.find(s => s.id === id);
 
   return (
     <div
@@ -1685,13 +1793,19 @@ function SortableSectionItem({ id }: { id: string }) {
       >
         <GripVertical className="h-4 w-4" />
       </button>
+      <span className="text-base">{sectionInfo?.icon || '📄'}</span>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium">{sectionInfo?.label || id}</p>
         <p className="text-xs text-muted-foreground truncate">{sectionInfo?.description}</p>
       </div>
-      <span className="text-xs text-muted-foreground tabular-nums shrink-0">
-        {(REORDERABLE_SECTIONS.findIndex(s => s.id === id) + 1) || ""}
-      </span>
+      {!sectionInfo?.required && onRemove && (
+        <button
+          onClick={() => onRemove(id)}
+          className="shrink-0 rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      )}
     </div>
   );
 }
@@ -1700,9 +1814,11 @@ function SortableSectionItem({ id }: { id: string }) {
 function SectionOrderList({
   sectionOrder,
   onReorder,
+  onRemove,
 }: {
   sectionOrder: string[];
   onReorder: (newOrder: string[]) => void;
+  onRemove?: (id: string) => void;
 }) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -1723,7 +1839,7 @@ function SectionOrderList({
       <SortableContext items={sectionOrder} strategy={verticalListSortingStrategy}>
         <div className="space-y-2">
           {sectionOrder.map((id) => (
-            <SortableSectionItem key={id} id={id} />
+            <SortableSectionItem key={id} id={id} onRemove={onRemove} />
           ))}
         </div>
       </SortableContext>
