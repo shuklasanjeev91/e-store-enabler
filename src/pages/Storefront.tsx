@@ -9,6 +9,8 @@ import ModernTheme from "@/components/storefront/themes/ModernTheme";
 import BaseStorefrontTheme from "@/components/storefront/themes/BaseStorefrontTheme";
 import { getThemeLayout, type ThemeId } from "@/components/storefront/themes";
 import { getThemeConfig } from "@/components/storefront/themes/config";
+import { useThemeSettings } from "@/hooks/useThemeSettings";
+import { useStoreBranding } from "@/hooks/useStoreBranding";
 
 interface StoreData {
   id: string;
@@ -37,6 +39,15 @@ export default function Storefront() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+
+  const { themeSettings } = useThemeSettings(store?.id ?? null);
+
+  useStoreBranding({
+    storeName: store?.name ?? null,
+    storeDescription: store?.description,
+    logoUrl: store?.logo_url,
+    faviconUrl: themeSettings?.favicon_url,
+  });
 
   useEffect(() => {
     if (slug) {

@@ -7,6 +7,8 @@ import MinimalPageLayout from "@/components/storefront/themes/layouts/MinimalPag
 import BoldPageLayout from "@/components/storefront/themes/layouts/BoldPageLayout";
 import ElegantPageLayout from "@/components/storefront/themes/layouts/ElegantPageLayout";
 import ModernPageLayout from "@/components/storefront/themes/layouts/ModernPageLayout";
+import { useThemeSettings } from "@/hooks/useThemeSettings";
+import { useStoreBranding } from "@/hooks/useStoreBranding";
 
 interface StoreData {
   id: string;
@@ -36,6 +38,17 @@ export default function StorePage() {
   const [page, setPage] = useState<PageData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+
+  const { themeSettings } = useThemeSettings(store?.id ?? null);
+
+  useStoreBranding({
+    storeName: store?.name ?? null,
+    storeDescription: store?.description,
+    logoUrl: store?.logo_url,
+    faviconUrl: themeSettings?.favicon_url,
+    pageTitle: page?.meta_title || page?.title,
+    pageDescription: page?.meta_description,
+  });
 
   useEffect(() => {
     if (slug && pageSlug) {
@@ -78,18 +91,6 @@ export default function StorePage() {
       }
 
       setPage(pageData);
-
-      // Update page meta tags
-      if (pageData.meta_title) {
-        document.title = pageData.meta_title;
-      } else {
-        document.title = `${pageData.title} | ${storeData.name}`;
-      }
-      
-      const metaDesc = document.querySelector('meta[name="description"]');
-      if (metaDesc && pageData.meta_description) {
-        metaDesc.setAttribute("content", pageData.meta_description);
-      }
     } catch (error) {
       console.error("Error fetching page:", error);
       setNotFound(true);
