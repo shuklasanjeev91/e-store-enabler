@@ -8,6 +8,7 @@ import CustomerAuthModal from "@/components/storefront/CustomerAuthModal";
 import ProductFilters, { FilterState } from "@/components/storefront/ProductFilters";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import StorefrontSearch from "@/components/storefront/StorefrontSearch";
 
 interface Product {
   id: string;
@@ -36,6 +37,7 @@ interface ElegantThemeProps {
 
 export default function ElegantTheme({ store, products }: ElegantThemeProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const {
     setStoreId,
     setCurrency,
@@ -105,7 +107,7 @@ export default function ElegantTheme({ store, products }: ElegantThemeProps) {
             </a>
             
             <div className="flex items-center gap-4">
-              <button className="p-2 text-stone-600 hover:text-stone-900">
+              <button className="p-2 text-stone-600 hover:text-stone-900" onClick={() => setSearchOpen(true)}>
                 <Search className="h-5 w-5" />
               </button>
               <button className="relative p-2 text-stone-600 hover:text-stone-900" onClick={() => setIsWishlistOpen(true)}>
@@ -246,6 +248,7 @@ export default function ElegantTheme({ store, products }: ElegantThemeProps) {
       <CartDrawer storeSlug={store.slug} />
       <WishlistDrawer />
       <CustomerAuthModal />
+      <StorefrontSearch products={products} storeSlug={store.slug} isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
     </div>
   );
 }

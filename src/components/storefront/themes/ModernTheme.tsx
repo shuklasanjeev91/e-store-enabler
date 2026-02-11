@@ -8,6 +8,7 @@ import CustomerAuthModal from "@/components/storefront/CustomerAuthModal";
 import ProductFilters, { FilterState } from "@/components/storefront/ProductFilters";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import StorefrontSearch from "@/components/storefront/StorefrontSearch";
 
 interface Product {
   id: string;
@@ -36,6 +37,7 @@ interface ModernThemeProps {
 
 export default function ModernTheme({ store, products }: ModernThemeProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const {
     setStoreId,
     setCurrency,
@@ -107,7 +109,7 @@ export default function ModernTheme({ store, products }: ModernThemeProps) {
             </nav>
           </div>
           <div className="flex items-center gap-2">
-            <button className="rounded-full p-2 hover:bg-zinc-100">
+            <button className="rounded-full p-2 hover:bg-zinc-100" onClick={() => setSearchOpen(true)}>
               <Search className="h-5 w-5 text-zinc-600" />
             </button>
             <button className="relative rounded-full p-2 hover:bg-zinc-100" onClick={() => setIsWishlistOpen(true)}>
@@ -287,6 +289,7 @@ export default function ModernTheme({ store, products }: ModernThemeProps) {
       <CartDrawer storeSlug={store.slug} />
       <WishlistDrawer />
       <CustomerAuthModal />
+      <StorefrontSearch products={products} storeSlug={store.slug} isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
     </div>
   );
 }
