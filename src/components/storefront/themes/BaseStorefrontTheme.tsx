@@ -487,11 +487,11 @@ export default function BaseStorefrontTheme({ store, products, config }: BaseSto
       case 'testimonials':
         if (!showTestimonials) return null;
         return (
-          <section key="testimonials" className="py-16 md:py-20" style={{ backgroundColor: effectiveColors.backgroundSecondary }}>
+          <section key="testimonials" className="py-16 md:py-24" style={{ backgroundColor: effectiveColors.backgroundSecondary }}>
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-              <div className="mb-12 text-center">
-                <p className="text-xs font-bold uppercase tracking-[0.2em]" style={{ color: effectiveColors.primary }}>Testimonials</p>
-                <h2 className="mt-3 text-2xl md:text-3xl" style={{ fontFamily: config.typography.headingFamily, fontWeight: config.typography.headingWeight }}>{sectionContent.testimonials.title || "What Our Customers Say"}</h2>
+              <div className="mb-14 text-center">
+                <p className="inline-block rounded-full px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em]" style={{ backgroundColor: `${effectiveColors.primary}15`, color: effectiveColors.primary }}>Testimonials</p>
+                <h2 className="mt-5 text-2xl md:text-4xl" style={{ fontFamily: config.typography.headingFamily, fontWeight: config.typography.headingWeight }}>{sectionContent.testimonials.title || "What Our Customers Say"}</h2>
               </div>
               <div className="grid gap-6 md:grid-cols-3">
                 {(sectionContent.testimonials.items || [
@@ -499,11 +499,11 @@ export default function BaseStorefrontTheme({ store, products, config }: BaseSto
                   { name: "John D.", text: "I've been a loyal customer for years. The quality never disappoints.", rating: 5 },
                   { name: "Emily R.", text: "Best online shopping experience I've ever had. Highly recommend!", rating: 5 },
                 ]).filter(t => t.name && t.text).map((testimonial, i) => (
-                  <div key={i} className="rounded-2xl p-8" style={{ backgroundColor: effectiveColors.background, border: `1px solid ${effectiveColors.border}` }}>
-                    <div className="mb-4 flex gap-0.5">{[...Array(testimonial.rating || 5)].map((_, s) => (<Star key={s} className="h-4 w-4 fill-yellow-400 text-yellow-400" />))}</div>
+                  <div key={i} className="rounded-2xl p-8 transition-all hover:shadow-lg" style={{ backgroundColor: effectiveColors.background, border: `1px solid ${effectiveColors.border}` }}>
+                    <div className="mb-4 flex gap-0.5">{[...Array(testimonial.rating || 5)].map((_, s) => (<Star key={s} className="h-4 w-4 fill-amber-400 text-amber-400" />))}</div>
                     <p className="text-sm leading-relaxed md:text-base" style={{ color: effectiveColors.foregroundMuted }}>"{testimonial.text}"</p>
                     <div className="mt-6 flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold text-white" style={{ backgroundColor: effectiveColors.primary }}>
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold" style={{ backgroundColor: `${effectiveColors.primary}20`, color: effectiveColors.primary }}>
                         {testimonial.name.charAt(0)}
                       </div>
                       <span className="text-sm font-semibold">{testimonial.name}</span>
@@ -517,14 +517,14 @@ export default function BaseStorefrontTheme({ store, products, config }: BaseSto
 
       case 'newsletter':
         return (
-          <section key="newsletter" className="py-16 md:py-20" style={{ backgroundColor: effectiveColors.primary }}>
+          <section key="newsletter" className="py-20 md:py-28" style={{ backgroundColor: effectiveColors.primary }}>
             <div className="mx-auto max-w-2xl px-4 text-center sm:px-6">
-              <p className="text-xs font-bold uppercase tracking-[0.2em]" style={{ color: `${effectiveColors.primaryForeground}aa` }}>Stay in the loop</p>
-              <h2 className="mt-3 text-2xl md:text-3xl" style={{ fontFamily: config.typography.headingFamily, fontWeight: config.typography.headingWeight, color: effectiveColors.primaryForeground }}>{sectionContent.newsletter.title || "Join Our Community"}</h2>
-              <p className="mt-3 text-sm opacity-70" style={{ color: effectiveColors.primaryForeground }}>{sectionContent.newsletter.subtitle || "Subscribe to our newsletter for the latest updates and exclusive offers."}</p>
-              <div className="mx-auto mt-8 flex max-w-md gap-0 overflow-hidden rounded-full" style={{ border: `2px solid ${effectiveColors.primaryForeground}30` }}>
-                <input type="email" placeholder="Enter your email" className="flex-1 bg-transparent px-6 py-3.5 text-sm focus:outline-none" style={{ color: effectiveColors.primaryForeground, caretColor: effectiveColors.primaryForeground }} />
-                <button className="rounded-full px-8 py-3.5 text-sm font-semibold transition-opacity hover:opacity-90" style={{ backgroundColor: effectiveColors.primaryForeground, color: effectiveColors.primary }}>{sectionContent.newsletter.button_text || "Subscribe"}</button>
+              <p className="text-xs font-bold uppercase tracking-[0.2em]" style={{ color: `${effectiveColors.primaryForeground}99` }}>Stay in the loop</p>
+              <h2 className="mt-4 text-2xl md:text-4xl" style={{ fontFamily: config.typography.headingFamily, fontWeight: config.typography.headingWeight, color: effectiveColors.primaryForeground }}>{sectionContent.newsletter.title || "Join Our Community"}</h2>
+              <p className="mt-4 text-sm leading-relaxed opacity-70" style={{ color: effectiveColors.primaryForeground }}>{sectionContent.newsletter.subtitle || "Subscribe to our newsletter for the latest updates and exclusive offers."}</p>
+              <div className="mx-auto mt-10 flex max-w-md gap-0 overflow-hidden rounded-full shadow-lg" style={{ border: `2px solid ${effectiveColors.primaryForeground}20` }}>
+                <input type="email" placeholder="Enter your email" className="flex-1 bg-transparent px-6 py-4 text-sm focus:outline-none" style={{ color: effectiveColors.primaryForeground, caretColor: effectiveColors.primaryForeground }} />
+                <button className="rounded-full px-8 py-4 text-sm font-semibold transition-all hover:opacity-90" style={{ backgroundColor: effectiveColors.primaryForeground, color: effectiveColors.primary }}>{sectionContent.newsletter.button_text || "Subscribe"}</button>
               </div>
             </div>
           </section>
@@ -544,25 +544,24 @@ export default function BaseStorefrontTheme({ store, products, config }: BaseSto
         fontFamily: effectiveFontFamily,
       }}
     >
-      {/* Xclusive-style Dual Announcement Bar */}
+      {/* Modern Announcement Bar */}
       <div
-        className="flex items-center justify-between px-4 py-2 text-xs sm:px-6"
-        style={{ backgroundColor: isDark ? effectiveColors.backgroundSecondary : "#f5f5f0", color: effectiveColors.foregroundMuted }}
+        className="relative overflow-hidden"
+        style={{ backgroundColor: effectiveColors.primary, color: effectiveColors.primaryForeground }}
       >
-        <span className="hidden md:inline">{sectionContent.hero.cta_secondary_text || "Free shipping on orders over $50"}</span>
-        <span className="text-center flex-1 md:flex-none font-medium" style={{ color: effectiveColors.foreground }}>
-          {sectionContent.hero.cta_secondary_text || "Free shipping on orders over $50"}
-        </span>
-        <span className="hidden items-center gap-1 md:inline-flex">
-          <MapPin className="h-3 w-3" /> Store Locator
-        </span>
+        <div className="mx-auto flex max-w-7xl items-center justify-center px-4 py-2.5 text-xs font-medium tracking-wide sm:px-6">
+          <span className="flex items-center gap-2">
+            <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-current opacity-70" />
+            {sectionContent.hero.cta_secondary_text || "Free shipping on orders over $50"}
+          </span>
+        </div>
       </div>
 
-      {/* Header - Xclusive-style two-tier */}
+      {/* Header - Modern two-tier */}
       <header
-        className="sticky top-0 z-50"
+        className="sticky top-0 z-50 backdrop-blur-xl"
         style={{
-          backgroundColor: effectiveColors.background,
+          backgroundColor: `${effectiveColors.background}ee`,
           borderBottom: `1px solid ${effectiveColors.border}`,
         }}
       >
@@ -570,7 +569,7 @@ export default function BaseStorefrontTheme({ store, products, config }: BaseSto
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-4">
             <button
-              className="p-1.5 md:hidden"
+              className="rounded-lg p-2 transition-colors hover:bg-black/5 md:hidden"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
               {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -580,7 +579,7 @@ export default function BaseStorefrontTheme({ store, products, config }: BaseSto
           {/* Center: Logo + Store name */}
           <Link
             to={`/store/${store.slug}`}
-            className="absolute left-1/2 -translate-x-1/2 flex items-center gap-3 transition-opacity hover:opacity-80"
+            className="absolute left-1/2 -translate-x-1/2 flex items-center gap-3 transition-all hover:opacity-80"
             style={{
               fontFamily: config.typography.headingFamily,
               fontWeight: config.typography.headingWeight,
@@ -589,31 +588,31 @@ export default function BaseStorefrontTheme({ store, products, config }: BaseSto
             }}
           >
             {store.logo_url && (
-              <img src={store.logo_url} alt={store.name} className="h-8 object-contain" />
+              <img src={store.logo_url} alt={store.name} className="h-9 object-contain" />
             )}
             {showStoreName && <span className="text-xl tracking-wider">{store.name}</span>}
           </Link>
 
           {/* Right: Icons */}
-          <div className="flex items-center gap-0.5">
-            <button className="p-2.5 transition-opacity hover:opacity-60" onClick={() => setSearchOpen(true)}>
-              <Search className="h-5 w-5" />
+          <div className="flex items-center gap-1">
+            <button className="rounded-lg p-2.5 transition-colors hover:bg-black/5" onClick={() => setSearchOpen(true)}>
+              <Search className="h-[18px] w-[18px]" />
             </button>
-            <button className="relative p-2.5 transition-opacity hover:opacity-60" onClick={() => setIsAuthOpen(true)}>
-              <User className="h-5 w-5" />
+            <button className="relative rounded-lg p-2.5 transition-colors hover:bg-black/5" onClick={() => setIsAuthOpen(true)}>
+              <User className="h-[18px] w-[18px]" />
             </button>
-            <button className="relative p-2.5 transition-opacity hover:opacity-60" onClick={() => setIsWishlistOpen(true)}>
-              <Heart className="h-5 w-5" />
+            <button className="relative rounded-lg p-2.5 transition-colors hover:bg-black/5" onClick={() => setIsWishlistOpen(true)}>
+              <Heart className="h-[18px] w-[18px]" />
               {wishlistItems.length > 0 && (
-                <span className="absolute right-0.5 top-0.5 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white" style={{ backgroundColor: effectiveColors.primary }}>
+                <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white" style={{ backgroundColor: effectiveColors.accent || effectiveColors.primary }}>
                   {wishlistItems.length}
                 </span>
               )}
             </button>
-            <button className="relative p-2.5 transition-opacity hover:opacity-60" onClick={() => setIsCartOpen(true)}>
-              <ShoppingBag className="h-5 w-5" />
+            <button className="relative rounded-lg p-2.5 transition-colors hover:bg-black/5" onClick={() => setIsCartOpen(true)}>
+              <ShoppingBag className="h-[18px] w-[18px]" />
               {cartCount > 0 && (
-                <span className="absolute right-0.5 top-0.5 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white" style={{ backgroundColor: effectiveColors.primary }}>
+                <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white" style={{ backgroundColor: effectiveColors.accent || effectiveColors.primary }}>
                   {cartCount}
                 </span>
               )}
@@ -888,33 +887,63 @@ export default function BaseStorefrontTheme({ store, products, config }: BaseSto
         )}
       </header>
 
-      {/* Mobile Menu - Xclusive-style slide-over */}
+      {/* Mobile Menu - Modern slide-over */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-40 md:hidden">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setMobileMenuOpen(false)} />
-          <div className="absolute inset-y-0 left-0 w-80 max-w-[85vw] overflow-y-auto" style={{ backgroundColor: effectiveColors.background }}>
-            <div className="flex items-center justify-between border-b p-4" style={{ borderColor: effectiveColors.border }}>
-              <span className="text-lg font-semibold" style={{ fontFamily: config.typography.headingFamily }}>{store.name}</span>
-              <button onClick={() => setMobileMenuOpen(false)}><X className="h-5 w-5" /></button>
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)} />
+          <div
+            className="absolute inset-y-0 left-0 w-80 max-w-[85vw] overflow-y-auto shadow-2xl"
+            style={{ backgroundColor: effectiveColors.background }}
+          >
+            <div className="flex items-center justify-between p-5" style={{ borderBottom: `1px solid ${effectiveColors.border}` }}>
+              <div className="flex items-center gap-3">
+                {store.logo_url && <img src={store.logo_url} alt="" className="h-7 object-contain" />}
+                <span className="text-base font-semibold" style={{ fontFamily: config.typography.headingFamily }}>{store.name}</span>
+              </div>
+              <button className="rounded-lg p-1.5 transition-colors hover:bg-black/5" onClick={() => setMobileMenuOpen(false)}>
+                <X className="h-5 w-5" />
+              </button>
             </div>
-            <nav className="flex flex-col p-4">
-              <Link to={`/store/${store.slug}`} className="border-b py-4 text-base font-medium" style={{ borderColor: effectiveColors.border }} onClick={() => setMobileMenuOpen(false)}>Home</Link>
-              <Link to={`/store/${store.slug}`} className="border-b py-4 text-base font-medium" style={{ borderColor: effectiveColors.border }} onClick={() => { setFilters({ ...filters, categories: [] }); setMobileMenuOpen(false); }}>Shop All</Link>
+            <nav className="flex flex-col px-3 py-3">
+              <Link
+                to={`/store/${store.slug}`}
+                className="rounded-xl px-4 py-3.5 text-sm font-medium transition-colors hover:bg-black/5"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Home
+              </Link>
+              <button
+                className="rounded-xl px-4 py-3.5 text-left text-sm font-medium transition-colors hover:bg-black/5"
+                onClick={() => { setFilters({ ...filters, categories: [] }); setMobileMenuOpen(false); }}
+              >
+                Shop All
+              </button>
               {headerMenuItems.length > 0 ? (
                 headerMenuItems.map((item) => (
-                  <Link key={item.id} to={item.url} className="border-b py-4 text-base font-medium" style={{ borderColor: effectiveColors.border }} onClick={() => setMobileMenuOpen(false)}>
+                  <Link key={item.id} to={item.url} className="rounded-xl px-4 py-3.5 text-sm font-medium transition-colors hover:bg-black/5" onClick={() => setMobileMenuOpen(false)}>
                     {item.name}
                   </Link>
                 ))
               ) : (
                 <>
+                  {categories.length > 0 && (
+                    <div className="mt-2 px-4 py-2">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.15em]" style={{ color: effectiveColors.foregroundMuted }}>Categories</p>
+                    </div>
+                  )}
                   {categories.map((cat) => (
-                    <button key={cat.id} className="border-b py-4 text-left text-base font-medium" style={{ borderColor: effectiveColors.border }} onClick={() => { setFilters({ ...filters, categories: [cat.id] }); setMobileMenuOpen(false); }}>
+                    <button key={cat.id} className="flex items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-medium transition-colors hover:bg-black/5" onClick={() => { setFilters({ ...filters, categories: [cat.id] }); setMobileMenuOpen(false); }}>
+                      {cat.image_url && <img src={cat.image_url} alt="" className="h-8 w-8 rounded-full object-cover" />}
                       {cat.name}
                     </button>
                   ))}
+                  {pages.length > 0 && (
+                    <div className="mt-2 px-4 py-2">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.15em]" style={{ color: effectiveColors.foregroundMuted }}>Pages</p>
+                    </div>
+                  )}
                   {pages.map((page) => (
-                    <Link key={page.id} to={`/store/${store.slug}/page/${page.slug}`} className="border-b py-4 text-base font-medium" style={{ borderColor: effectiveColors.border }} onClick={() => setMobileMenuOpen(false)}>
+                    <Link key={page.id} to={`/store/${store.slug}/page/${page.slug}`} className="rounded-xl px-4 py-3 text-sm font-medium transition-colors hover:bg-black/5" onClick={() => setMobileMenuOpen(false)}>
                       {page.title}
                     </Link>
                   ))}
@@ -931,14 +960,15 @@ export default function BaseStorefrontTheme({ store, products, config }: BaseSto
       {/* Dynamic Section Rendering based on saved order */}
       {sectionOrder.map((sectionId) => renderSection(sectionId))}
 
-      {/* Footer - Xclusive-style elegant multi-column */}
-      <footer style={{ backgroundColor: isDark ? effectiveColors.backgroundSecondary : "#0a0a0a", color: "#ffffff" }}>
+      <footer className="relative overflow-hidden" style={{ backgroundColor: isDark ? effectiveColors.backgroundSecondary : "#0a0a0a", color: "#ffffff" }}>
+        {/* Subtle gradient accent at top */}
+        <div className="absolute inset-x-0 top-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${effectiveColors.primary}60, transparent)` }} />
         <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
-          <div className="grid gap-12 md:grid-cols-5">
-            {/* Brand column - larger */}
-            <div className="md:col-span-2">
+          <div className="grid gap-12 md:grid-cols-12">
+            {/* Brand column */}
+            <div className="md:col-span-5">
               <div className="flex items-center gap-3">
-                {store.logo_url && <img src={store.logo_url} alt={store.name} className="h-8 object-contain brightness-0 invert" />}
+                {store.logo_url && <img src={store.logo_url} alt={store.name} className="h-9 object-contain brightness-0 invert" />}
                 <h4 className="text-xl font-semibold tracking-wider" style={{ fontFamily: config.typography.headingFamily }}>
                   {store.name}
                 </h4>
@@ -947,14 +977,14 @@ export default function BaseStorefrontTheme({ store, products, config }: BaseSto
                 {sectionContent.footer.tagline || store.description || "Curated collections for the modern lifestyle. Quality meets design."}
               </p>
               {/* Newsletter in footer */}
-              <div className="mt-8 flex max-w-sm overflow-hidden rounded-full border border-white/20">
-                <input type="email" placeholder="Your email" className="flex-1 bg-transparent px-5 py-3 text-sm text-white placeholder:text-white/30 focus:outline-none" />
-                <button className="rounded-full bg-white px-6 py-3 text-sm font-semibold text-black transition-opacity hover:opacity-90">
-                  Join
+              <div className="mt-8 flex max-w-sm overflow-hidden rounded-full" style={{ border: '1px solid rgba(255,255,255,0.15)' }}>
+                <input type="email" placeholder="Your email address" className="flex-1 bg-transparent px-5 py-3 text-sm text-white placeholder:text-white/30 focus:outline-none" />
+                <button className="rounded-full px-6 py-3 text-sm font-semibold transition-all hover:opacity-90" style={{ backgroundColor: effectiveColors.primary, color: effectiveColors.primaryForeground }}>
+                  Subscribe
                 </button>
               </div>
             </div>
-            <div>
+            <div className="md:col-span-2">
               <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-white/40">Shop</h4>
               <ul className="mt-5 space-y-3.5 text-sm text-white/60">
                 <li><Link to={`/store/${store.slug}`} className="hover:text-white transition-colors">All Products</Link></li>
@@ -965,7 +995,7 @@ export default function BaseStorefrontTheme({ store, products, config }: BaseSto
                 ))}
               </ul>
             </div>
-            <div>
+            <div className="md:col-span-2">
               <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-white/40">Company</h4>
               <ul className="mt-5 space-y-3.5 text-sm text-white/60">
                 {footerMenuItems.length > 0 ? (
@@ -979,13 +1009,13 @@ export default function BaseStorefrontTheme({ store, products, config }: BaseSto
                 )}
               </ul>
             </div>
-            <div>
-              <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-white/40">Help</h4>
+            <div className="md:col-span-3">
+              <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-white/40">Get in Touch</h4>
               <ul className="mt-5 space-y-3.5 text-sm text-white/60">
                 <li className="hover:text-white transition-colors cursor-pointer">{sectionContent.footer.contact_email || `support@${store.slug}.com`}</li>
                 <li className="hover:text-white transition-colors cursor-pointer">{sectionContent.footer.contact_phone || "+91 9876543210"}</li>
                 <li className="hover:text-white transition-colors cursor-pointer">FAQs</li>
-                <li className="hover:text-white transition-colors cursor-pointer">Shipping Info</li>
+                <li className="hover:text-white transition-colors cursor-pointer">Shipping & Returns</li>
               </ul>
             </div>
           </div>
