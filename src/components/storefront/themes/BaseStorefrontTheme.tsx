@@ -1,4 +1,4 @@
-import { ShoppingBag, Search, Menu, X, Heart, User, ChevronRight, ArrowRight, Star, ChevronLeft, MapPin } from "lucide-react";
+import { ShoppingBag, Search, Menu, X, Heart, User, ChevronRight, ArrowRight, Star, ChevronLeft, MapPin, ChevronDown } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { useStorefront } from "@/contexts/StorefrontContext";
@@ -45,6 +45,8 @@ interface BaseStorefrontThemeProps {
 export default function BaseStorefrontTheme({ store, products, config }: BaseStorefrontThemeProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [activeMegaMenu, setActiveMegaMenu] = useState<string | null>(null);
+  const megaMenuTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const {
     setStoreId,
     setCurrency,
@@ -619,33 +621,131 @@ export default function BaseStorefrontTheme({ store, products, config }: BaseSto
           </div>
         </div>
 
-        {/* Bottom tier: Navigation - Xclusive-style with bold nav items */}
+        {/* Bottom tier: Navigation with Mega Menu */}
         <nav
           className="hidden border-t md:block"
           style={{ borderColor: effectiveColors.border }}
         >
-          <div className="mx-auto flex max-w-7xl items-center justify-center gap-8 px-4 py-3 sm:px-6 lg:px-8">
-            <Link to={`/store/${store.slug}`} className="text-sm font-medium transition-colors hover:opacity-70" style={{ color: effectiveColors.foreground }}>
+          <div className="mx-auto flex max-w-7xl items-center justify-center gap-1 px-4 py-0 sm:px-6 lg:px-8">
+            <Link to={`/store/${store.slug}`} className="px-4 py-3 text-sm font-medium transition-colors hover:opacity-70" style={{ color: effectiveColors.foreground }}>
               Home
             </Link>
+
+            {/* Categories with mega menu */}
+            {categories.length > 0 && (
+              <div
+                className="relative"
+                onMouseEnter={() => {
+                  if (megaMenuTimeoutRef.current) clearTimeout(megaMenuTimeoutRef.current);
+                  setActiveMegaMenu('shop');
+                }}
+                onMouseLeave={() => {
+                  megaMenuTimeoutRef.current = setTimeout(() => setActiveMegaMenu(null), 200);
+                }}
+              >
+                <button
+                  className="flex items-center gap-1 px-4 py-3 text-sm font-medium transition-colors hover:opacity-70"
+                  style={{ color: effectiveColors.foreground }}
+                >
+                  Shop <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${activeMegaMenu === 'shop' ? 'rotate-180' : ''}`} />
+                </button>
+
+                {/* Mega Menu Dropdown */}
+                {activeMegaMenu === 'shop' && (
+                  <div
+                    className="absolute left-1/2 top-full z-50 w-[700px] -translate-x-1/2 animate-in fade-in slide-in-from-top-2 duration-200"
+                  >
+                    <div className="mt-0.5 rounded-xl border p-6 shadow-2xl" style={{ backgroundColor: effectiveColors.background, borderColor: effectiveColors.border }}>
+                      <div className="grid grid-cols-12 gap-6">
+                        {/* Categories list */}
+                        <div className="col-span-4">
+                          <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: effectiveColors.foregroundMuted }}>Categories</p>
+                          <div className="space-y-0.5">
+                            {categories.map((cat) => (
+                              <button
+                                key={cat.id}
+                                className="group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition-all hover:translate-x-0.5"
+                                style={{ color: effectiveColors.foreground }}
+                                onMouseEnter={() => setActiveMegaMenu('shop')}
+                                onClick={() => {
+                                  setFilters({ ...filters, categories: [cat.id] });
+                                  setActiveMegaMenu(null);
+                                }}
+                              >
+                                {cat.image_url && (
+                                  <div className="h-8 w-8 flex-shrink-0 overflow-hidden rounded-lg">
+                                    <img src={cat.image_url} alt={cat.name} className="h-full w-full object-cover" />
+                                  </div>
+                                )}
+                                <span className="flex-1 font-medium">{cat.name}</span>
+                                <ChevronRight className="h-3.5 w-3.5 opacity-0 transition-opacity group-hover:opacity-100" style={{ color: effectiveColors.primary }} />
+                              </button>
+                            ))}
+                          </div>
+                          <button
+                            className="mt-3 flex items-center gap-1.5 px-3 text-xs font-semibold uppercase tracking-wider transition-colors hover:opacity-70"
+                            style={{ color: effectiveColors.primary }}
+                            onClick={() => {
+                              setFilters({ ...filters, categories: [] });
+                              setActiveMegaMenu(null);
+                            }}
+                          >
+                            View All Products <ArrowRight className="h-3 w-3" />
+                          </button>
+                        </div>
+
+                        {/* Featured category images */}
+                        <div className="col-span-8">
+                          <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: effectiveColors.foregroundMuted }}>Featured</p>
+                          <div className="grid grid-cols-2 gap-3">
+                            {categoriesWithProducts.slice(0, 4).map((cat) => (
+                              <button
+                                key={cat.id}
+                                className="group relative overflow-hidden rounded-lg"
+                                style={{ aspectRatio: '4/3' }}
+                                onClick={() => {
+                                  setFilters({ ...filters, categories: [cat.id] });
+                                  setActiveMegaMenu(null);
+                                }}
+                              >
+                                {cat.coverImage ? (
+                                  <img
+                                    src={cat.coverImage}
+                                    alt={cat.name}
+                                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                  />
+                                ) : (
+                                  <div className="flex h-full w-full items-center justify-center text-3xl font-bold" style={{ backgroundColor: effectiveColors.backgroundSecondary, color: effectiveColors.foregroundMuted }}>
+                                    {cat.name.charAt(0)}
+                                  </div>
+                                )}
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+                                <div className="absolute bottom-0 left-0 p-3">
+                                  <span className="text-sm font-semibold text-white">{cat.name}</span>
+                                  <p className="text-[10px] text-white/70">{cat.productCount} product{cat.productCount !== 1 ? 's' : ''}</p>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Regular nav items */}
             {headerMenuItems.length > 0 ? (
-              headerMenuItems.slice(0, 7).map((item) => (
-                <Link key={item.id} to={item.url} className="text-sm font-medium transition-colors hover:opacity-70" style={{ color: effectiveColors.foreground }}>
+              headerMenuItems.slice(0, 5).map((item) => (
+                <Link key={item.id} to={item.url} className="px-4 py-3 text-sm font-medium transition-colors hover:opacity-70" style={{ color: effectiveColors.foreground }}>
                   {item.name}
                 </Link>
               ))
             ) : (
               <>
-                {categories.slice(0, 4).map((cat) => (
-                  <button key={cat.id} className="text-sm font-medium transition-colors hover:opacity-70" onClick={() => setFilters({ ...filters, categories: [cat.id] })}>
-                    {cat.name}
-                  </button>
-                ))}
-                <Link to={`/store/${store.slug}`} className="text-sm font-medium transition-colors hover:opacity-70" onClick={() => setFilters({ ...filters, categories: [] })}>
-                  Shop
-                </Link>
                 {pages.slice(0, 3).map((page) => (
-                  <Link key={page.id} to={`/store/${store.slug}/page/${page.slug}`} className="text-sm font-medium transition-colors hover:opacity-70">
+                  <Link key={page.id} to={`/store/${store.slug}/page/${page.slug}`} className="px-4 py-3 text-sm font-medium transition-colors hover:opacity-70" style={{ color: effectiveColors.foreground }}>
                     {page.title}
                   </Link>
                 ))}
