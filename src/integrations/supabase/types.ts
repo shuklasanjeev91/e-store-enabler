@@ -892,6 +892,41 @@ export type Database = {
           },
         ]
       }
+      store_section_content: {
+        Row: {
+          content: Json
+          created_at: string
+          id: string
+          section_key: string
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          content?: Json
+          created_at?: string
+          id?: string
+          section_key: string
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          id?: string
+          section_key?: string
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_section_content_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_theme_settings: {
         Row: {
           accent_color: string | null
