@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -14,7 +14,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   Search,
-  HelpCircle,
   Bell,
   MoreHorizontal,
   Edit,
@@ -29,6 +28,22 @@ import {
   GripVertical,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+  DragStartEvent,
+  DragOverlay,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 interface StoreData {
   id: string;
@@ -53,16 +68,20 @@ interface CategoryNode extends Category {
   level: number;
 }
 
+interface FlatItem {
+  id: string;
+  cat: Category;
+  level: number;
+}
+
 function buildTree(categories: Category[]): CategoryNode[] {
   const map = new Map<string, CategoryNode>();
   const roots: CategoryNode[] = [];
 
-  // Create nodes
   categories.forEach((cat) => {
     map.set(cat.id, { ...cat, children: [], level: 0 });
   });
 
-  // Build tree
   categories.forEach((cat) => {
     const node = map.get(cat.id)!;
     if (cat.parent_id && map.has(cat.parent_id)) {
@@ -74,7 +93,6 @@ function buildTree(categories: Category[]): CategoryNode[] {
     }
   });
 
-  // Fix deeper levels recursively
   const fixLevels = (nodes: CategoryNode[], level: number) => {
     nodes.forEach((n) => {
       n.level = level;
@@ -86,6 +104,204 @@ function buildTree(categories: Category[]): CategoryNode[] {
   return roots;
 }
 
+// Flatten tree into visible items respecting expanded state
+function flattenTree(
+  nodes: CategoryNode[],
+  expandedIds: Set<string>
+): FlatItem[] {
+  const result: FlatItem[] = [];
+  const walk = (list: CategoryNode[]) => {
+    const sorted = [...list].sort(
+      (a, b) => (a.sort_order || 0) - (b.sort_order || 0)
+    );
+    sorted.forEach((node) => {
+      result.push({ id: node.id, cat: node, level: node.level });
+      if (expandedIds.has(node.id) && node.children.length > 0) {
+        walk(node.children);
+      }
+    });
+  };
+  walk(nodes);
+  return result;
+}
+
+const getLevelLabel = (level: number) => {
+  switch (level) {
+    case 0: return "L1";
+    case 1: return "L2";
+    case 2: return "L3";
+    default: return `L${level + 1}`;
+  }
+};
+
+const getLevelColor = (level: number) => {
+  switch (level) {
+    case 0: return "bg-primary/10 text-primary";
+    case 1: return "bg-blue-500/10 text-blue-600";
+    case 2: return "bg-amber-500/10 text-amber-600";
+    default: return "bg-muted text-muted-foreground";
+  }
+};
+
+// ─── Sortable Row ────────────────────────────────────────
+function SortableCategoryRow({
+  item,
+  categories,
+  expandedIds,
+  toggleExpand,
+  navigate,
+  deleteCategory,
+  isDragOverlay,
+}: {
+  item: FlatItem;
+  categories: Category[];
+  expandedIds: Set<string>;
+  toggleExpand: (id: string) => void;
+  navigate: (path: string) => void;
+  deleteCategory: (id: string) => void;
+  isDragOverlay?: boolean;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: item.id });
+
+  const style = isDragOverlay
+    ? {}
+    : {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.3 : 1,
+      };
+
+  const cat = item.cat;
+  const level = item.level;
+  const childCount = categories.filter((c) => c.parent_id === cat.id).length;
+  const isExpanded = expandedIds.has(cat.id);
+  const canAddChild = level < 2;
+
+  return (
+    <div
+      ref={!isDragOverlay ? setNodeRef : undefined}
+      style={style}
+      className={`group flex items-center gap-2 border-b px-4 py-3 transition-colors hover:bg-muted/50 ${
+        isDragOverlay ? "rounded-lg border bg-card shadow-lg" : ""
+      }`}
+      {...(!isDragOverlay ? attributes : {})}
+    >
+      {/* Drag handle */}
+      <button
+        className="cursor-grab active:cursor-grabbing p-1 text-muted-foreground hover:text-foreground flex-shrink-0"
+        {...(!isDragOverlay ? listeners : {})}
+      >
+        <GripVertical className="h-4 w-4" />
+      </button>
+
+      {/* Indent spacer */}
+      {level > 0 && <div style={{ width: `${level * 24}px` }} className="flex-shrink-0" />}
+
+      {/* Expand toggle */}
+      <button
+        className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded transition-colors hover:bg-muted"
+        onClick={() => childCount > 0 && toggleExpand(cat.id)}
+      >
+        {childCount > 0 ? (
+          isExpanded ? (
+            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          ) : (
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          )
+        ) : (
+          <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground/30" />
+        )}
+      </button>
+
+      {/* Image */}
+      <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-lg border bg-muted">
+        {cat.image_url ? (
+          <img src={cat.image_url} alt={cat.name} className="h-full w-full object-cover" />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center">
+            <Layers className="h-4 w-4 text-muted-foreground" />
+          </div>
+        )}
+      </div>
+
+      {/* Name & info */}
+      <div className="flex flex-1 items-center gap-3 min-w-0">
+        <div className="min-w-0 flex-1">
+          <button
+            className="font-medium text-sm hover:text-primary transition-colors text-left truncate block"
+            onClick={() => navigate(`/dashboard/categories/${cat.id}`)}
+          >
+            {cat.name}
+          </button>
+          <p className="text-xs text-muted-foreground truncate">{cat.slug}</p>
+        </div>
+
+        <span
+          className={`flex-shrink-0 rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${getLevelColor(level)}`}
+        >
+          {getLevelLabel(level)}
+        </span>
+
+        {childCount > 0 && (
+          <span className="flex-shrink-0 text-xs text-muted-foreground">
+            {childCount} sub
+          </span>
+        )}
+
+        <Badge variant={cat.status === "active" ? "default" : "secondary"} className="flex-shrink-0">
+          {cat.status}
+        </Badge>
+      </div>
+
+      {/* Actions */}
+      <div className="flex flex-shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+        {canAddChild && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 gap-1 text-xs"
+            onClick={() => navigate(`/dashboard/categories/new?parent=${cat.id}`)}
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Sub
+          </Button>
+        )}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => navigate(`/dashboard/categories/${cat.id}`)}>
+              <Edit className="mr-2 h-4 w-4" />
+              Edit
+            </DropdownMenuItem>
+            {canAddChild && (
+              <DropdownMenuItem onClick={() => navigate(`/dashboard/categories/new?parent=${cat.id}`)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Subcategory
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem className="text-destructive" onClick={() => deleteCategory(cat.id)}>
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Component ──────────────────────────────────────
 export default function Categories() {
   const navigate = useNavigate();
   const { user, isLoading } = useAuth();
@@ -95,6 +311,11 @@ export default function Categories() {
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+  );
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -131,7 +352,6 @@ export default function Categories() {
 
       if (!categoriesError && categoriesData) {
         setCategories(categoriesData);
-        // Auto-expand all L1 categories
         const l1Ids = new Set(
           categoriesData.filter((c) => !c.parent_id).map((c) => c.id)
         );
@@ -145,7 +365,6 @@ export default function Categories() {
   };
 
   const deleteCategory = async (categoryId: string) => {
-    // Check if it has children
     const hasChildren = categories.some((c) => c.parent_id === categoryId);
     if (hasChildren) {
       toast({
@@ -157,13 +376,8 @@ export default function Categories() {
     }
 
     try {
-      const { error } = await supabase
-        .from("categories")
-        .delete()
-        .eq("id", categoryId);
-
+      const { error } = await supabase.from("categories").delete().eq("id", categoryId);
       if (error) throw error;
-
       setCategories(categories.filter((c) => c.id !== categoryId));
       toast({ title: "Category deleted successfully" });
     } catch (error) {
@@ -175,24 +389,90 @@ export default function Categories() {
   const toggleExpand = (id: string) => {
     setExpandedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   };
 
-  const expandAll = () => {
-    setExpandedIds(new Set(categories.map((c) => c.id)));
+  const expandAll = () => setExpandedIds(new Set(categories.map((c) => c.id)));
+  const collapseAll = () => setExpandedIds(new Set());
+
+  const getChildCount = (catId: string) =>
+    categories.filter((c) => c.parent_id === catId).length;
+
+  // ─── Drag Handlers ──────────────────────────────────
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
   };
 
-  const collapseAll = () => {
-    setExpandedIds(new Set());
-  };
+  const handleDragEnd = useCallback(
+    async (event: DragEndEvent) => {
+      setActiveId(null);
+      const { active, over } = event;
+      if (!over || active.id === over.id) return;
 
-  // Filter tree — if searching, flatten and show matches
+      const draggedCat = categories.find((c) => c.id === active.id);
+      const overCat = categories.find((c) => c.id === over.id);
+      if (!draggedCat || !overCat) return;
+
+      // Only allow reordering within the same parent
+      if (draggedCat.parent_id !== overCat.parent_id) {
+        toast({
+          title: "Cannot move here",
+          description: "You can only reorder categories within the same level/parent.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Get siblings, reorder
+      const parentId = draggedCat.parent_id;
+      const siblings = categories
+        .filter((c) => c.parent_id === parentId)
+        .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+
+      const oldIndex = siblings.findIndex((c) => c.id === active.id);
+      const newIndex = siblings.findIndex((c) => c.id === over.id);
+      if (oldIndex === -1 || newIndex === -1) return;
+
+      // Reorder array
+      const reordered = [...siblings];
+      const [moved] = reordered.splice(oldIndex, 1);
+      reordered.splice(newIndex, 0, moved);
+
+      // Update sort_order locally
+      const updates: { id: string; sort_order: number }[] = reordered.map(
+        (c, i) => ({ id: c.id, sort_order: i })
+      );
+
+      setCategories((prev) =>
+        prev.map((c) => {
+          const u = updates.find((u) => u.id === c.id);
+          return u ? { ...c, sort_order: u.sort_order } : c;
+        })
+      );
+
+      // Persist to DB
+      try {
+        await Promise.all(
+          updates.map((u) =>
+            supabase
+              .from("categories")
+              .update({ sort_order: u.sort_order })
+              .eq("id", u.id)
+          )
+        );
+        toast({ title: "Category order updated" });
+      } catch (error) {
+        console.error("Error updating sort order:", error);
+        toast({ title: "Failed to update order", variant: "destructive" });
+      }
+    },
+    [categories, toast]
+  );
+
+  // ─── Build visible items ───────────────────────────
   const tree = buildTree(categories);
 
   const filteredFlat = searchQuery
@@ -201,160 +481,23 @@ export default function Categories() {
       )
     : null;
 
-  // Get the depth label
-  const getLevelLabel = (level: number) => {
-    switch (level) {
-      case 0: return "L1";
-      case 1: return "L2";
-      case 2: return "L3";
-      default: return `L${level + 1}`;
-    }
-  };
+  const visibleItems: FlatItem[] = searchQuery
+    ? (filteredFlat || []).map((cat) => {
+        let level = 0;
+        let current = cat;
+        while (current.parent_id) {
+          level++;
+          const parent = categories.find((c) => c.id === current.parent_id);
+          if (!parent) break;
+          current = parent;
+        }
+        return { id: cat.id, cat, level };
+      })
+    : flattenTree(tree, expandedIds);
 
-  const getLevelColor = (level: number) => {
-    switch (level) {
-      case 0: return "bg-primary/10 text-primary";
-      case 1: return "bg-blue-500/10 text-blue-600";
-      case 2: return "bg-amber-500/10 text-amber-600";
-      default: return "bg-muted text-muted-foreground";
-    }
-  };
-
-  const getChildCount = (catId: string): number => {
-    return categories.filter((c) => c.parent_id === catId).length;
-  };
-
-  // Render a single category row
-  const renderCategoryRow = (cat: CategoryNode | Category, level: number = 0) => {
-    const childCount = getChildCount(cat.id);
-    const isExpanded = expandedIds.has(cat.id);
-    const children = categories.filter((c) => c.parent_id === cat.id);
-    const canAddChild = level < 2; // Max 3 levels (0, 1, 2)
-
-    return (
-      <div key={cat.id}>
-        <div
-          className="group flex items-center gap-2 border-b px-4 py-3 transition-colors hover:bg-muted/50"
-          style={{ paddingLeft: `${16 + level * 32}px` }}
-        >
-          {/* Expand toggle */}
-          <button
-            className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded transition-colors hover:bg-muted"
-            onClick={() => childCount > 0 && toggleExpand(cat.id)}
-          >
-            {childCount > 0 ? (
-              isExpanded ? (
-                <ChevronDown className="h-4 w-4 text-muted-foreground" />
-              ) : (
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
-              )
-            ) : (
-              <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground/30" />
-            )}
-          </button>
-
-          {/* Image */}
-          <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-lg border bg-muted">
-            {cat.image_url ? (
-              <img
-                src={cat.image_url}
-                alt={cat.name}
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center">
-                <Layers className="h-4 w-4 text-muted-foreground" />
-              </div>
-            )}
-          </div>
-
-          {/* Name & info */}
-          <div className="flex flex-1 items-center gap-3 min-w-0">
-            <div className="min-w-0 flex-1">
-              <button
-                className="font-medium text-sm hover:text-primary transition-colors text-left truncate block"
-                onClick={() => navigate(`/dashboard/categories/${cat.id}`)}
-              >
-                {cat.name}
-              </button>
-              <p className="text-xs text-muted-foreground truncate">{cat.slug}</p>
-            </div>
-
-            {/* Level badge */}
-            <span className={`flex-shrink-0 rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${getLevelColor(level)}`}>
-              {getLevelLabel(level)}
-            </span>
-
-            {/* Child count */}
-            {childCount > 0 && (
-              <span className="flex-shrink-0 text-xs text-muted-foreground">
-                {childCount} sub
-              </span>
-            )}
-
-            {/* Status */}
-            <Badge
-              variant={cat.status === "active" ? "default" : "secondary"}
-              className="flex-shrink-0"
-            >
-              {cat.status}
-            </Badge>
-          </div>
-
-          {/* Actions */}
-          <div className="flex flex-shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-            {canAddChild && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 gap-1 text-xs"
-                onClick={() => navigate(`/dashboard/categories/new?parent=${cat.id}`)}
-              >
-                <Plus className="h-3.5 w-3.5" />
-                Sub
-              </Button>
-            )}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  onClick={() => navigate(`/dashboard/categories/${cat.id}`)}
-                >
-                  <Edit className="mr-2 h-4 w-4" />
-                  Edit
-                </DropdownMenuItem>
-                {canAddChild && (
-                  <DropdownMenuItem
-                    onClick={() => navigate(`/dashboard/categories/new?parent=${cat.id}`)}
-                  >
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Subcategory
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuItem
-                  className="text-destructive"
-                  onClick={() => deleteCategory(cat.id)}
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Delete
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-
-        {/* Render children if expanded */}
-        {isExpanded &&
-          children
-            .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
-            .map((child) => renderCategoryRow(child, level + 1))}
-      </div>
-    );
-  };
+  const activeItem = activeId
+    ? visibleItems.find((i) => i.id === activeId) || null
+    : null;
 
   if (isLoading || isLoadingData) {
     return (
@@ -365,11 +508,6 @@ export default function Categories() {
   }
 
   if (!store) return null;
-
-  const l1Count = categories.filter((c) => !c.parent_id).length;
-  const l2Count = categories.filter(
-    (c) => c.parent_id && !categories.some((p) => p.parent_id && p.id === c.parent_id && categories.some((gp) => gp.id === p.parent_id))
-  ).length;
 
   return (
     <div className="min-h-screen bg-background">
@@ -417,12 +555,19 @@ export default function Categories() {
                   Create categories to organize your products
                 </h2>
                 <p className="mb-2 max-w-md text-center text-muted-foreground">
-                  Build a 3-level category hierarchy (e.g., Clothing → Men → T-Shirts) to power your storefront mega menu.
+                  Build a 3-level category hierarchy (e.g., Clothing → Men → T-Shirts) to
+                  power your storefront mega menu.
                 </p>
                 <div className="mb-6 flex items-center gap-6 text-sm text-muted-foreground">
-                  <span className="flex items-center gap-1.5"><span className="inline-block h-2.5 w-2.5 rounded bg-primary/60" /> Level 1: Main</span>
-                  <span className="flex items-center gap-1.5"><span className="inline-block h-2.5 w-2.5 rounded bg-blue-500/60" /> Level 2: Sub</span>
-                  <span className="flex items-center gap-1.5"><span className="inline-block h-2.5 w-2.5 rounded bg-amber-500/60" /> Level 3: Item</span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="inline-block h-2.5 w-2.5 rounded bg-primary/60" /> Level 1: Main
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="inline-block h-2.5 w-2.5 rounded bg-blue-500/60" /> Level 2: Sub
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="inline-block h-2.5 w-2.5 rounded bg-amber-500/60" /> Level 3: Item
+                  </span>
                 </div>
 
                 <Button onClick={() => navigate("/dashboard/categories/new")}>
@@ -455,7 +600,7 @@ export default function Categories() {
                 {/* Hierarchy Legend */}
                 <div className="mb-4 flex items-center gap-4 rounded-lg border bg-muted/30 px-4 py-2.5 text-xs text-muted-foreground">
                   <FolderTree className="h-4 w-4" />
-                  <span>Category hierarchy supports up to 3 levels for the storefront mega menu</span>
+                  <span>Drag the ⋮⋮ handle to reorder categories within the same level</span>
                   <span className="mx-2">•</span>
                   <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${getLevelColor(0)}`}>L1</span>
                   <span>Main</span>
@@ -465,10 +610,11 @@ export default function Categories() {
                   <span>Item</span>
                 </div>
 
-                {/* Tree View */}
+                {/* Tree View with DnD */}
                 <div className="rounded-lg border bg-card">
                   {/* Table Header */}
                   <div className="flex items-center gap-2 border-b bg-muted/30 px-4 py-2.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    <div className="w-8" />
                     <div className="w-6" />
                     <div className="w-10" />
                     <div className="flex-1">Category</div>
@@ -477,25 +623,45 @@ export default function Categories() {
                     <div className="w-24" />
                   </div>
 
-                  {/* Search results (flat) */}
-                  {filteredFlat
-                    ? filteredFlat.map((cat) => {
-                        // Find its depth
-                        let level = 0;
-                        let current = cat;
-                        while (current.parent_id) {
-                          level++;
-                          const parent = categories.find((c) => c.id === current.parent_id);
-                          if (!parent) break;
-                          current = parent;
-                        }
-                        return renderCategoryRow(cat, level);
-                      })
-                    : tree
-                        .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
-                        .map((node) => renderCategoryRow(node, 0))}
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragStart={handleDragStart}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <SortableContext
+                      items={visibleItems.map((i) => i.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      {visibleItems.map((item) => (
+                        <SortableCategoryRow
+                          key={item.id}
+                          item={item}
+                          categories={categories}
+                          expandedIds={expandedIds}
+                          toggleExpand={toggleExpand}
+                          navigate={navigate}
+                          deleteCategory={deleteCategory}
+                        />
+                      ))}
+                    </SortableContext>
 
-                  {(filteredFlat ? filteredFlat.length : tree.length) === 0 && (
+                    <DragOverlay>
+                      {activeItem ? (
+                        <SortableCategoryRow
+                          item={activeItem}
+                          categories={categories}
+                          expandedIds={expandedIds}
+                          toggleExpand={toggleExpand}
+                          navigate={navigate}
+                          deleteCategory={deleteCategory}
+                          isDragOverlay
+                        />
+                      ) : null}
+                    </DragOverlay>
+                  </DndContext>
+
+                  {visibleItems.length === 0 && (
                     <div className="py-12 text-center text-sm text-muted-foreground">
                       No categories found
                     </div>
