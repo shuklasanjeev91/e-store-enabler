@@ -16,6 +16,7 @@ import StorefrontSearch from "@/components/storefront/StorefrontSearch";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useThemeSettings, getBackgroundStyles, getFontFamilyCSS } from "@/hooks/useThemeSettings";
+import { useStoreBranding } from "@/hooks/useStoreBranding";
 
 interface Product {
   id: string;
@@ -72,20 +73,13 @@ export default function MinimalTheme({ store, products }: MinimalThemeProps) {
     setCurrency(store.currency);
   }, [store.id, store.currency]);
 
-  // Apply favicon
-  useEffect(() => {
-    if (themeSettings?.favicon_url) {
-      const link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
-      if (link) {
-        link.href = themeSettings.favicon_url;
-      } else {
-        const newLink = document.createElement("link");
-        newLink.rel = "icon";
-        newLink.href = themeSettings.favicon_url;
-        document.head.appendChild(newLink);
-      }
-    }
-  }, [themeSettings?.favicon_url]);
+  // Apply store branding
+  useStoreBranding({
+    storeName: store.name,
+    storeDescription: store.description,
+    logoUrl: store.logo_url,
+    faviconUrl: themeSettings?.favicon_url,
+  });
 
   // Apply custom CSS
   useEffect(() => {
