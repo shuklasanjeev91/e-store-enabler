@@ -735,6 +735,132 @@ export default function BaseStorefrontTheme({ store, products, config }: BaseSto
               </div>
             )}
 
+            {/* Collections Mega Menu */}
+            <div
+              className="relative"
+              onMouseEnter={() => {
+                if (megaMenuTimeoutRef.current) clearTimeout(megaMenuTimeoutRef.current);
+                setActiveMegaMenu('collections');
+              }}
+              onMouseLeave={() => {
+                megaMenuTimeoutRef.current = setTimeout(() => setActiveMegaMenu(null), 200);
+              }}
+            >
+              <button
+                className="flex items-center gap-1 px-4 py-3 text-sm font-medium transition-colors hover:opacity-70"
+                style={{ color: effectiveColors.foreground }}
+              >
+                Collections <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${activeMegaMenu === 'collections' ? 'rotate-180' : ''}`} />
+              </button>
+
+              {activeMegaMenu === 'collections' && (
+                <div className="absolute left-1/2 top-full z-50 w-[820px] -translate-x-1/2 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="mt-0.5 rounded-xl border p-6 shadow-2xl" style={{ backgroundColor: effectiveColors.background, borderColor: effectiveColors.border }}>
+                    {/* Seasonal / curated collections */}
+                    <div className="mb-4 flex items-center justify-between">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: effectiveColors.foregroundMuted }}>Curated Collections</p>
+                      <button
+                        className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider transition-colors hover:opacity-70"
+                        style={{ color: effectiveColors.primary }}
+                        onClick={() => setActiveMegaMenu(null)}
+                      >
+                        View All <ArrowRight className="h-3 w-3" />
+                      </button>
+                    </div>
+
+                    {/* Large banner cards grid */}
+                    <div className="grid grid-cols-3 gap-4">
+                      {/* New Arrivals */}
+                      <button
+                        className="group relative overflow-hidden rounded-xl"
+                        style={{ aspectRatio: '3/4' }}
+                        onClick={() => {
+                          setFilters({ ...filters, sortBy: 'newest', categories: [] });
+                          setActiveMegaMenu(null);
+                        }}
+                      >
+                        {products[0]?.images?.[0] ? (
+                          <img src={products[0].images[0]} alt="New Arrivals" className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                        ) : (
+                          <div className="h-full w-full" style={{ backgroundColor: effectiveColors.accent }} />
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                        <div className="absolute bottom-0 left-0 right-0 p-5">
+                          <span className="mb-1 inline-block rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white/90" style={{ backgroundColor: effectiveColors.primary }}>New</span>
+                          <h3 className="mt-2 text-lg font-bold text-white" style={{ fontFamily: config.typography.headingFamily }}>New Arrivals</h3>
+                          <p className="mt-1 text-xs text-white/70">Fresh picks just for you</p>
+                        </div>
+                      </button>
+
+                      {/* Best Sellers */}
+                      <button
+                        className="group relative overflow-hidden rounded-xl"
+                        style={{ aspectRatio: '3/4' }}
+                        onClick={() => {
+                          setFilters({ ...filters, categories: [] });
+                          setActiveMegaMenu(null);
+                        }}
+                      >
+                        {products[1]?.images?.[0] ? (
+                          <img src={products[1].images[0]} alt="Best Sellers" className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                        ) : (
+                          <div className="h-full w-full" style={{ backgroundColor: effectiveColors.primary }} />
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                        <div className="absolute bottom-0 left-0 right-0 p-5">
+                          <span className="mb-1 inline-block rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white/90" style={{ backgroundColor: '#e74c3c' }}>Trending</span>
+                          <h3 className="mt-2 text-lg font-bold text-white" style={{ fontFamily: config.typography.headingFamily }}>Best Sellers</h3>
+                          <p className="mt-1 text-xs text-white/70">Most loved by customers</p>
+                        </div>
+                      </button>
+
+                      {/* Sale / Seasonal */}
+                      <button
+                        className="group relative overflow-hidden rounded-xl"
+                        style={{ aspectRatio: '3/4' }}
+                        onClick={() => {
+                          setFilters({ ...filters, sortBy: 'price-asc', categories: [] });
+                          setActiveMegaMenu(null);
+                        }}
+                      >
+                        {products[2]?.images?.[0] ? (
+                          <img src={products[2].images[0]} alt="Sale" className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                        ) : (
+                          <div className="h-full w-full" style={{ backgroundColor: effectiveColors.backgroundSecondary }} />
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                        <div className="absolute bottom-0 left-0 right-0 p-5">
+                          <span className="mb-1 inline-block rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white/90" style={{ backgroundColor: '#f39c12' }}>Sale</span>
+                          <h3 className="mt-2 text-lg font-bold text-white" style={{ fontFamily: config.typography.headingFamily }}>Seasonal Sale</h3>
+                          <p className="mt-1 text-xs text-white/70">Up to 50% off select items</p>
+                        </div>
+                      </button>
+                    </div>
+
+                    {/* Bottom row: quick category links */}
+                    {categoriesWithProducts.length > 0 && (
+                      <div className="mt-5 flex flex-wrap items-center gap-2 border-t pt-4" style={{ borderColor: effectiveColors.border }}>
+                        <span className="mr-2 text-[10px] font-bold uppercase tracking-[0.15em]" style={{ color: effectiveColors.foregroundMuted }}>Quick Links:</span>
+                        {categoriesWithProducts.slice(0, 6).map((cat) => (
+                          <button
+                            key={cat.id}
+                            className="rounded-full px-4 py-1.5 text-xs font-medium transition-all hover:scale-105"
+                            style={{ border: `1px solid ${effectiveColors.border}`, color: effectiveColors.foreground }}
+                            onClick={() => {
+                              setFilters({ ...filters, categories: [cat.id] });
+                              setActiveMegaMenu(null);
+                            }}
+                          >
+                            {cat.name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Regular nav items */}
             {headerMenuItems.length > 0 ? (
               headerMenuItems.slice(0, 5).map((item) => (
