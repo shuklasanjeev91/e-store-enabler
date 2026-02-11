@@ -11,6 +11,17 @@ import {
   Image as ImageIcon,
   Upload,
   Trash2,
+  Palette,
+  Type,
+  Layout,
+  ImagePlus,
+  ToggleLeft,
+  MessageSquareQuote,
+  FileText,
+  Code,
+  Megaphone,
+  PanelTop,
+  Mail,
 } from "lucide-react";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import { Button } from "@/components/ui/button";
@@ -451,18 +462,21 @@ export default function CustomizeTheme() {
   if (!store || !settings) return null;
 
   const sections = [
-    { id: "background", label: "Background" },
-    { id: "colors", label: "Colors" },
-    { id: "header", label: "Header & Favicon" },
-    { id: "banners", label: "Banners" },
-    { id: "sections", label: "Sections" },
-    { id: "hero-content", label: "Hero Content" },
-    { id: "brand-story-content", label: "Brand Story" },
-    { id: "testimonials-content", label: "Testimonials" },
-    { id: "footer-content", label: "Footer Content" },
-    { id: "fonts", label: "Fonts" },
-    { id: "advanced", label: "Advanced" },
+    { id: "background", label: "Background", icon: Palette, group: "Design" },
+    { id: "colors", label: "Colors", icon: Palette, group: "Design" },
+    { id: "fonts", label: "Typography", icon: Type, group: "Design" },
+    { id: "header", label: "Header & Branding", icon: PanelTop, group: "Layout" },
+    { id: "banners", label: "Banners", icon: ImagePlus, group: "Layout" },
+    { id: "sections", label: "Section Visibility", icon: ToggleLeft, group: "Layout" },
+    { id: "hero-content", label: "Hero Section", icon: Layout, group: "Content" },
+    { id: "brand-story-content", label: "Brand Story", icon: FileText, group: "Content" },
+    { id: "testimonials-content", label: "Testimonials", icon: MessageSquareQuote, group: "Content" },
+    { id: "newsletter-content", label: "Newsletter", icon: Mail, group: "Content" },
+    { id: "footer-content", label: "Footer", icon: Megaphone, group: "Content" },
+    { id: "advanced", label: "Advanced", icon: Code, group: "Advanced" },
   ];
+
+  const sectionGroups = ["Design", "Layout", "Content", "Advanced"];
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -507,28 +521,42 @@ export default function CustomizeTheme() {
 
           {/* Main Content */}
           <div className="grid gap-8 lg:grid-cols-[280px_1fr]">
-            {/* Sidebar Navigation */}
-            <Card className="h-fit">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base font-medium">
-                  {store.theme.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")}
+            {/* Sidebar Navigation - Shopify-style grouped */}
+            <Card className="h-fit sticky top-20">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                  Theme Editor
                 </CardTitle>
+                <CardDescription className="text-xs">
+                  {store.theme.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")}
+                </CardDescription>
               </CardHeader>
-              <CardContent className="p-0">
+              <CardContent className="p-0 pb-2">
                 <nav className="flex flex-col">
-                  {sections.map((section) => (
-                    <button
-                      key={section.id}
-                      onClick={() => setActiveSection(section.id)}
-                      className={cn(
-                        "flex items-center px-6 py-3 text-sm transition-colors",
-                        activeSection === section.id
-                          ? "bg-primary/10 text-primary border-l-2 border-primary font-medium"
-                          : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                      )}
-                    >
-                      {section.label}
-                    </button>
+                  {sectionGroups.map((group) => (
+                    <div key={group}>
+                      <div className="px-6 pb-1 pt-4 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
+                        {group}
+                      </div>
+                      {sections.filter(s => s.group === group).map((section) => {
+                        const Icon = section.icon;
+                        return (
+                          <button
+                            key={section.id}
+                            onClick={() => setActiveSection(section.id)}
+                            className={cn(
+                              "flex w-full items-center gap-3 px-6 py-2.5 text-sm transition-colors",
+                              activeSection === section.id
+                                ? "bg-primary/10 text-primary border-l-2 border-primary font-medium"
+                                : "text-muted-foreground hover:bg-muted hover:text-foreground border-l-2 border-transparent"
+                            )}
+                          >
+                            <Icon className="h-4 w-4 shrink-0" />
+                            {section.label}
+                          </button>
+                        );
+                      })}
+                    </div>
                   ))}
                 </nav>
               </CardContent>
@@ -1094,6 +1122,60 @@ export default function CustomizeTheme() {
                         Customize the main heading, subheading, and call-to-action buttons on your storefront homepage.
                       </p>
                     </div>
+
+                    {/* Hero Background Image Upload */}
+                    <div className="space-y-3">
+                      <Label>Hero background image</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Upload a full-width hero image (recommended 1920×800px). This creates a Shopify-style full-bleed hero section.
+                      </p>
+                      <div className="relative aspect-[21/9] overflow-hidden rounded-lg border-2 border-dashed bg-muted">
+                        {sectionContent.hero.background_image ? (
+                          <>
+                            <img src={sectionContent.hero.background_image} alt="Hero" className="h-full w-full object-cover" />
+                            <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                              <div className="flex gap-2">
+                                <label htmlFor="hero-bg-upload">
+                                  <Button variant="secondary" size="sm" asChild>
+                                    <span><Upload className="mr-2 h-3 w-3" />Change</span>
+                                  </Button>
+                                </label>
+                                <Button variant="destructive" size="sm" onClick={() => updateSection("hero", { background_image: "" })}>
+                                  <Trash2 className="mr-2 h-3 w-3" />Remove
+                                </Button>
+                              </div>
+                            </div>
+                          </>
+                        ) : (
+                          <label htmlFor="hero-bg-upload" className="flex h-full cursor-pointer flex-col items-center justify-center gap-2">
+                            <ImagePlus className="h-10 w-10 text-muted-foreground" />
+                            <span className="text-sm font-medium text-muted-foreground">Click to upload hero image</span>
+                            <span className="text-xs text-muted-foreground/60">1920×800px recommended</span>
+                          </label>
+                        )}
+                        <input
+                          id="hero-bg-upload"
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file || !store) return;
+                            try {
+                              const fileExt = file.name.split(".").pop();
+                              const fileName = `${store.id}/hero-bg.${fileExt}`;
+                              await supabase.storage.from("page-images").upload(fileName, file, { upsert: true });
+                              const { data: urlData } = supabase.storage.from("page-images").getPublicUrl(fileName);
+                              updateSection("hero", { background_image: urlData.publicUrl });
+                              toast({ title: "Hero image uploaded! Click Update to save." });
+                            } catch (error) {
+                              toast({ title: "Upload failed", variant: "destructive" });
+                            }
+                          }}
+                        />
+                      </div>
+                    </div>
+
                     <div className="space-y-4">
                       <div className="space-y-2">
                         <Label>Heading</Label>
@@ -1124,17 +1206,20 @@ export default function CustomizeTheme() {
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label>Secondary button text</Label>
+                          <Label>Announcement bar text</Label>
                           <Input
-                            placeholder="View Lookbook"
+                            placeholder="Free shipping on orders over $50"
                             value={sectionContent.hero.cta_secondary_text || ""}
                             onChange={(e) => updateSection("hero", { cta_secondary_text: e.target.value })}
                           />
+                          <p className="text-xs text-muted-foreground">Shows as a top announcement bar</p>
                         </div>
                       </div>
                     </div>
                   </div>
                 )}
+
+
 
                 {/* Brand Story Content Section */}
                 {activeSection === "brand-story-content" && (
@@ -1298,7 +1383,45 @@ export default function CustomizeTheme() {
                   </div>
                 )}
 
-                {/* Fonts Section */}
+                {/* Newsletter Content Section */}
+                {activeSection === "newsletter-content" && (
+                  <div className="space-y-6">
+                    <div>
+                      <h2 className="text-lg font-semibold">Newsletter Section</h2>
+                      <p className="text-sm text-muted-foreground">
+                        Customize the newsletter signup section that appears before the footer.
+                      </p>
+                    </div>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>Title</Label>
+                        <Input
+                          placeholder="Stay Updated"
+                          value={sectionContent.newsletter.title || ""}
+                          onChange={(e) => updateSection("newsletter", { title: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Subtitle</Label>
+                        <Textarea
+                          placeholder="Subscribe to our newsletter for the latest updates and offers."
+                          value={sectionContent.newsletter.subtitle || ""}
+                          onChange={(e) => updateSection("newsletter", { subtitle: e.target.value })}
+                          className="min-h-[60px]"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Button text</Label>
+                        <Input
+                          placeholder="Subscribe"
+                          value={sectionContent.newsletter.button_text || ""}
+                          onChange={(e) => updateSection("newsletter", { button_text: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {activeSection === "fonts" && (
                   <div className="space-y-6">
                     <div>
