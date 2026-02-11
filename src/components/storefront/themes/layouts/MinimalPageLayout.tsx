@@ -6,6 +6,8 @@ import CartDrawer from "@/components/storefront/CartDrawer";
 import WishlistDrawer from "@/components/storefront/WishlistDrawer";
 import CustomerAuthModal from "@/components/storefront/CustomerAuthModal";
 import { Badge } from "@/components/ui/badge";
+import BlockRenderer from "@/components/page-builder/BlockRenderer";
+import { isBlockContent } from "@/components/page-builder/types";
 
 interface Store {
   id: string;
@@ -172,10 +174,14 @@ export default function MinimalPageLayout({ store, page }: MinimalPageLayoutProp
           {/* Content */}
           <article className="w-full">
             {page.content ? (
-              <div
-                className="prose prose-gray prose-lg max-w-none prose-headings:font-light prose-headings:tracking-tight prose-p:leading-relaxed prose-a:text-gray-900 prose-a:underline prose-a:underline-offset-4 prose-img:rounded-xl prose-img:w-full"
-                dangerouslySetInnerHTML={{ __html: page.content }}
-              />
+              isBlockContent(page.content) ? (
+                <BlockRenderer content={page.content} />
+              ) : (
+                <div
+                  className="prose prose-gray prose-lg max-w-none prose-headings:font-light prose-headings:tracking-tight prose-p:leading-relaxed prose-a:text-gray-900 prose-a:underline prose-a:underline-offset-4 prose-img:rounded-xl prose-img:w-full"
+                  dangerouslySetInnerHTML={{ __html: page.content }}
+                />
+              )
             ) : (
               <div className="flex min-h-[200px] flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50/50 p-8 text-center">
                 <p className="text-lg font-light text-gray-500">This page is empty</p>

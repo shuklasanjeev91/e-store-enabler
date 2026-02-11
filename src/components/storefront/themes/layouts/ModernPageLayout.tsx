@@ -6,6 +6,8 @@ import CartDrawer from "@/components/storefront/CartDrawer";
 import WishlistDrawer from "@/components/storefront/WishlistDrawer";
 import CustomerAuthModal from "@/components/storefront/CustomerAuthModal";
 import { Badge } from "@/components/ui/badge";
+import BlockRenderer from "@/components/page-builder/BlockRenderer";
+import { isBlockContent } from "@/components/page-builder/types";
 
 interface Store {
   id: string;
@@ -171,14 +173,18 @@ export default function ModernPageLayout({ store, page }: ModernPageLayoutProps)
           {/* Content */}
           <article className="w-full">
             {page.content ? (
-              <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-xl shadow-zinc-200/50">
-                <div className="p-6 sm:p-8 lg:p-12">
-                  <div
-                    className="prose prose-zinc prose-lg lg:prose-xl max-w-none prose-headings:font-bold prose-headings:tracking-tight prose-p:leading-relaxed prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline prose-img:rounded-xl prose-img:w-full prose-img:shadow-lg prose-pre:bg-zinc-900 prose-code:text-blue-600"
-                    dangerouslySetInnerHTML={{ __html: page.content }}
-                  />
+              isBlockContent(page.content) ? (
+                <BlockRenderer content={page.content} />
+              ) : (
+                <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-xl shadow-zinc-200/50">
+                  <div className="p-6 sm:p-8 lg:p-12">
+                    <div
+                      className="prose prose-zinc prose-lg lg:prose-xl max-w-none prose-headings:font-bold prose-headings:tracking-tight prose-p:leading-relaxed prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline prose-img:rounded-xl prose-img:w-full prose-img:shadow-lg prose-pre:bg-zinc-900 prose-code:text-blue-600"
+                      dangerouslySetInnerHTML={{ __html: page.content }}
+                    />
+                  </div>
                 </div>
-              </div>
+              )
             ) : (
               <div className="flex min-h-[200px] flex-col items-center justify-center rounded-2xl border-2 border-dashed border-zinc-300 bg-white p-8 text-center">
                 <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-zinc-100 mb-4">

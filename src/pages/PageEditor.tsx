@@ -13,6 +13,9 @@ import { toast } from "@/hooks/use-toast";
 import { z } from "zod";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import BlockEditor from "@/components/page-builder/BlockEditor";
+import { isBlockContent } from "@/components/page-builder/types";
 
 const pageSchema = z.object({
   title: z.string().trim().min(1, "Title is required").max(200, "Title must be less than 200 characters"),
@@ -475,12 +478,27 @@ export default function PageEditor() {
             {/* Page Content */}
             <div className="rounded-xl border bg-background p-6">
               <h2 className="mb-4 font-semibold">Page Content</h2>
-              <RichTextEditor
-                content={formData.content}
-                onChange={(content) => setFormData((prev) => ({ ...prev, content }))}
-                placeholder="Start writing your page content..."
-                storeId={store.id}
-              />
+              <Tabs defaultValue={isBlockContent(formData.content) ? "blocks" : "richtext"}>
+                <TabsList className="mb-4">
+                  <TabsTrigger value="richtext">Rich Text Editor</TabsTrigger>
+                  <TabsTrigger value="blocks">Block Builder</TabsTrigger>
+                </TabsList>
+                <TabsContent value="richtext">
+                  <RichTextEditor
+                    content={isBlockContent(formData.content) ? "" : formData.content}
+                    onChange={(content) => setFormData((prev) => ({ ...prev, content }))}
+                    placeholder="Start writing your page content..."
+                    storeId={store.id}
+                  />
+                </TabsContent>
+                <TabsContent value="blocks">
+                  <BlockEditor
+                    content={isBlockContent(formData.content) ? formData.content : "[]"}
+                    onChange={(content) => setFormData((prev) => ({ ...prev, content }))}
+                    storeId={store.id}
+                  />
+                </TabsContent>
+              </Tabs>
             </div>
 
             {/* SEO Section */}
