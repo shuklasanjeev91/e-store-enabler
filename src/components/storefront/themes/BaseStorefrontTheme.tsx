@@ -117,7 +117,13 @@ export default function BaseStorefrontTheme({ store, products, config }: BaseSto
 
   const categoryScrollRef = useRef<HTMLDivElement>(null);
   const cat = config.category;
-  const labels = categoryLabels[cat] || categoryLabels.fashion;
+  const defaultLabels = categoryLabels[cat] || categoryLabels.fashion;
+  const labels = {
+    shopAll: sectionContent.labels.shop_all || defaultLabels.shopAll,
+    featured: sectionContent.labels.featured || defaultLabels.featured,
+    collection: sectionContent.labels.collection || defaultLabels.collection,
+    cta: sectionContent.labels.cta || defaultLabels.cta,
+  };
   const catIcon = categoryIcons[cat];
 
   useEffect(() => {

@@ -504,6 +504,7 @@ export default function CustomizeTheme() {
     { id: "banners", label: "Banners", icon: ImagePlus, group: "Layout" },
     { id: "sections", label: "Sections & Order", icon: Layers, group: "Layout" },
     { id: "hero-content", label: "Hero Section", icon: Layout, group: "Content" },
+    { id: "labels-content", label: "Button Labels", icon: Type, group: "Content" },
     { id: "brand-story-content", label: "Brand Story", icon: FileText, group: "Content" },
     { id: "testimonials-content", label: "Testimonials", icon: MessageSquareQuote, group: "Content" },
     { id: "newsletter-content", label: "Newsletter", icon: Mail, group: "Content" },
@@ -1270,6 +1271,57 @@ export default function CustomizeTheme() {
                           />
                           <p className="text-xs text-muted-foreground">Shows as a top announcement bar</p>
                         </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+
+                {/* Button Labels Content Section */}
+                {activeSection === "labels-content" && (
+                  <div className="space-y-6">
+                    <div>
+                      <h2 className="text-lg font-semibold">Button Labels</h2>
+                      <p className="text-sm text-muted-foreground">
+                        Customize the button and section labels shown across your storefront. Leave empty to use theme defaults.
+                      </p>
+                    </div>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>Shop All / Browse button</Label>
+                        <Input
+                          placeholder="e.g. Shop the Look, Browse Tech, Explore Fun"
+                          value={sectionContent.labels.shop_all || ""}
+                          onChange={(e) => updateSection("labels", { shop_all: e.target.value })}
+                        />
+                        <p className="text-xs text-muted-foreground">Used on hero section and category browse buttons</p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Featured section label</Label>
+                        <Input
+                          placeholder="e.g. Editor's Picks, Today's Deals, Bestsellers"
+                          value={sectionContent.labels.featured || ""}
+                          onChange={(e) => updateSection("labels", { featured: e.target.value })}
+                        />
+                        <p className="text-xs text-muted-foreground">Used as heading for featured products section</p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Collection label</Label>
+                        <Input
+                          placeholder="e.g. Lookbook, Weekly Specials, By Category"
+                          value={sectionContent.labels.collection || ""}
+                          onChange={(e) => updateSection("labels", { collection: e.target.value })}
+                        />
+                        <p className="text-xs text-muted-foreground">Used as subtitle for category collection section</p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>CTA button text</Label>
+                        <Input
+                          placeholder="e.g. Shop Now, Buy Now, Add to Cart"
+                          value={sectionContent.labels.cta || ""}
+                          onChange={(e) => updateSection("labels", { cta: e.target.value })}
+                        />
+                        <p className="text-xs text-muted-foreground">Default call-to-action text on product buttons</p>
                       </div>
                     </div>
                   </div>
