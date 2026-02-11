@@ -2,13 +2,10 @@ import { useState } from "react";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   InputOTP,
   InputOTPGroup,
@@ -17,7 +14,7 @@ import {
 import { useStorefront } from "@/contexts/StorefrontContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { Mail, Phone, Loader2 } from "lucide-react";
+import { Mail, Phone, Loader2, ShieldCheck, ArrowLeft } from "lucide-react";
 
 export default function CustomerAuthModal() {
   const { isAuthOpen, setIsAuthOpen, setCustomer, storeId } = useStorefront();
@@ -73,8 +70,8 @@ export default function CustomerAuthModal() {
       }
 
       toast({
-        title: "OTP Sent",
-        description: `A verification code has been sent to your ${authType}`,
+        title: "Code Sent!",
+        description: `Check your ${authType} for the verification code`,
       });
       setStep("otp");
     } catch (error: any) {
@@ -110,7 +107,7 @@ export default function CustomerAuthModal() {
         setCustomer(response.data.customer);
         toast({
           title: "Welcome!",
-          description: "You have been signed in successfully",
+          description: "You're now signed in",
         });
         handleClose();
       }
@@ -127,127 +124,123 @@ export default function CustomerAuthModal() {
 
   return (
     <Dialog open={isAuthOpen} onOpenChange={setIsAuthOpen}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>
-            {step === "input" ? "Sign In" : "Enter Verification Code"}
-          </DialogTitle>
-        </DialogHeader>
+      <DialogContent className="sm:max-w-[400px] p-0 gap-0 overflow-hidden rounded-2xl">
+        {/* Header */}
+        <div className="px-6 pt-8 pb-2 text-center">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
+            <ShieldCheck className="h-7 w-7 text-primary" />
+          </div>
+          <h2 className="text-xl font-semibold">
+            {step === "input" ? "Welcome" : "Verify Your Identity"}
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {step === "input"
+              ? "Sign in to access your orders and wishlist"
+              : `Enter the 6-digit code sent to ${authType === "email" ? email : phone}`}
+          </p>
+        </div>
 
-        {step === "input" ? (
-          <Tabs
-            value={authType}
-            onValueChange={(v) => setAuthType(v as "email" | "phone")}
-          >
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="email" className="flex items-center gap-2">
-                <Mail className="h-4 w-4" />
-                Email
-              </TabsTrigger>
-              <TabsTrigger value="phone" className="flex items-center gap-2">
-                <Phone className="h-4 w-4" />
-                Phone
-              </TabsTrigger>
-            </TabsList>
+        <div className="px-6 pb-8 pt-4">
+          {step === "input" ? (
+            <div className="space-y-5">
+              {/* Auth type toggle */}
+              <div className="flex rounded-xl bg-muted/50 p-1">
+                <button
+                  className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-medium transition-all ${
+                    authType === "email"
+                      ? "bg-white shadow-sm text-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                  onClick={() => setAuthType("email")}
+                >
+                  <Mail className="h-4 w-4" />
+                  Email
+                </button>
+                <button
+                  className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-medium transition-all ${
+                    authType === "phone"
+                      ? "bg-white shadow-sm text-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                  onClick={() => setAuthType("phone")}
+                >
+                  <Phone className="h-4 w-4" />
+                  Phone
+                </button>
+              </div>
 
-            <TabsContent value="email" className="space-y-4 mt-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email Address</Label>
+                <Label htmlFor="auth-input" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  {authType === "email" ? "Email Address" : "Phone Number"}
+                </Label>
                 <Input
-                  id="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  id="auth-input"
+                  type={authType === "email" ? "email" : "tel"}
+                  placeholder={authType === "email" ? "you@example.com" : "+91 9876543210"}
+                  value={authType === "email" ? email : phone}
+                  onChange={(e) =>
+                    authType === "email" ? setEmail(e.target.value) : setPhone(e.target.value)
+                  }
+                  className="h-12 rounded-xl"
                 />
               </div>
+
               <Button
-                className="w-full"
+                className="w-full h-12 rounded-xl text-sm font-semibold"
                 onClick={handleSendOTP}
-                disabled={isLoading || !email}
+                disabled={isLoading || !(authType === "email" ? email : phone)}
               >
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Send OTP
+                Continue
               </Button>
-            </TabsContent>
-
-            <TabsContent value="phone" className="space-y-4 mt-4">
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  placeholder="+91 9876543210"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                />
-              </div>
-              <Button
-                className="w-full"
-                onClick={handleSendOTP}
-                disabled={isLoading || !phone}
-              >
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Send OTP
-              </Button>
-            </TabsContent>
-          </Tabs>
-        ) : (
-          <div className="space-y-6">
-            <p className="text-sm text-muted-foreground text-center">
-              We sent a 6-digit code to{" "}
-              <span className="font-medium">
-                {authType === "email" ? email : phone}
-              </span>
-            </p>
-
-            <div className="flex justify-center">
-              <InputOTP
-                maxLength={6}
-                value={otp}
-                onChange={(value) => setOtp(value)}
-              >
-                <InputOTPGroup>
-                  <InputOTPSlot index={0} />
-                  <InputOTPSlot index={1} />
-                  <InputOTPSlot index={2} />
-                  <InputOTPSlot index={3} />
-                  <InputOTPSlot index={4} />
-                  <InputOTPSlot index={5} />
-                </InputOTPGroup>
-              </InputOTP>
             </div>
+          ) : (
+            <div className="space-y-6">
+              <div className="flex justify-center">
+                <InputOTP
+                  maxLength={6}
+                  value={otp}
+                  onChange={(value) => setOtp(value)}
+                >
+                  <InputOTPGroup>
+                    <InputOTPSlot index={0} className="h-12 w-12 rounded-xl text-lg" />
+                    <InputOTPSlot index={1} className="h-12 w-12 rounded-xl text-lg" />
+                    <InputOTPSlot index={2} className="h-12 w-12 rounded-xl text-lg" />
+                    <InputOTPSlot index={3} className="h-12 w-12 rounded-xl text-lg" />
+                    <InputOTPSlot index={4} className="h-12 w-12 rounded-xl text-lg" />
+                    <InputOTPSlot index={5} className="h-12 w-12 rounded-xl text-lg" />
+                  </InputOTPGroup>
+                </InputOTP>
+              </div>
 
-            <div className="space-y-2">
               <Button
-                className="w-full"
+                className="w-full h-12 rounded-xl text-sm font-semibold"
                 onClick={handleVerifyOTP}
                 disabled={isLoading || otp.length !== 6}
               >
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Verify & Sign In
               </Button>
-              <Button
-                variant="ghost"
-                className="w-full"
-                onClick={() => setStep("input")}
-              >
-                Change {authType}
-              </Button>
-            </div>
 
-            <p className="text-xs text-muted-foreground text-center">
-              Didn't receive the code?{" "}
-              <button
-                className="text-primary hover:underline"
-                onClick={handleSendOTP}
-                disabled={isLoading}
-              >
-                Resend
-              </button>
-            </p>
-          </div>
-        )}
+              <div className="flex items-center justify-between text-xs">
+                <button
+                  className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors"
+                  onClick={() => setStep("input")}
+                >
+                  <ArrowLeft className="h-3 w-3" />
+                  Change {authType}
+                </button>
+                <button
+                  className="text-primary hover:underline"
+                  onClick={handleSendOTP}
+                  disabled={isLoading}
+                >
+                  Resend Code
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );
