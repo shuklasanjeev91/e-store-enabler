@@ -1,6 +1,4 @@
-import { Heart, ShoppingCart, Eye, Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Heart, ShoppingCart, ShoppingBag, Plus } from "lucide-react";
 import { useStorefront } from "@/contexts/StorefrontContext";
 import { formatCurrency } from "@/lib/currency";
 import { useNavigate } from "react-router-dom";
@@ -36,7 +34,6 @@ export default function ProductCard({
     useStorefront();
   const navigate = useNavigate();
   const [isHovered, setIsHovered] = useState(false);
-  const [imageLoaded, setImageLoaded] = useState(false);
 
   const isOnSale =
     product.compare_at_price && product.compare_at_price > product.price;
@@ -71,8 +68,8 @@ export default function ProductCard({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Image Container */}
-      <div className="relative aspect-[3/4] overflow-hidden rounded-lg bg-neutral-100">
+      {/* Image Container - Xclusive-style clean with minimal overlays */}
+      <div className="relative aspect-[3/4] overflow-hidden bg-neutral-100">
         {product.images?.[0] ? (
           <>
             <img
@@ -82,9 +79,8 @@ export default function ProductCard({
                 "absolute inset-0 h-full w-full object-cover transition-all duration-700",
                 hasSecondImage && isHovered ? "opacity-0 scale-105" : "opacity-100 scale-100"
               )}
-              onLoad={() => setImageLoaded(true)}
             />
-            {/* Second image on hover (Shopify-style image swap) */}
+            {/* Second image on hover */}
             {hasSecondImage && (
               <img
                 src={product.images![1]}
@@ -102,64 +98,59 @@ export default function ProductCard({
           </div>
         )}
 
-        {/* Sale Badge */}
+        {/* Sale Badge - Xclusive-style top-left pill */}
         {isOnSale && (
           <div
-            className="absolute left-3 top-3 rounded-full px-2.5 py-1 text-xs font-semibold text-white"
-            style={{ backgroundColor: accentColor || "#ef4444" }}
+            className="absolute left-3 top-3 rounded-sm px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white"
+            style={{ backgroundColor: accentColor || "#e53e3e" }}
           >
-            -{discount}%
+            Sale -{discount}%
           </div>
         )}
 
-        {/* Wishlist Button (always visible top-right) */}
+        {/* Wishlist Button - top right */}
         <button
           className={cn(
-            "absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 shadow-sm backdrop-blur-sm transition-all hover:bg-white hover:scale-110",
-            isInWishlist(product.id) && "bg-red-50"
+            "absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-sm transition-all hover:scale-110",
+            isHovered ? "opacity-100" : "opacity-0",
+            isInWishlist(product.id) && "opacity-100"
           )}
           onClick={handleAddToWishlist}
         >
           <Heart
             className={cn(
               "h-4 w-4 transition-colors",
-              isInWishlist(product.id) ? "fill-red-500 text-red-500" : "text-neutral-600"
+              isInWishlist(product.id) ? "fill-red-500 text-red-500" : "text-neutral-700"
             )}
           />
         </button>
 
-        {/* Quick Add Button - slides up from bottom on hover */}
-        <div
+        {/* Quick Add - Xclusive-style bag icon bottom-right */}
+        <button
           className={cn(
-            "absolute inset-x-3 bottom-3 transition-all duration-300",
-            isHovered ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
+            "absolute bottom-3 right-3 flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-lg transition-all hover:scale-110",
+            isHovered ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"
           )}
+          onClick={handleAddToCart}
         >
-          <button
-            className="flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold text-white shadow-lg backdrop-blur-sm transition-all hover:opacity-90"
-            style={{ backgroundColor: primaryColor || "#1a1a1a" }}
-            onClick={handleAddToCart}
-          >
-            <Plus className="h-4 w-4" />
-            Quick Add
-          </button>
-        </div>
+          <ShoppingBag className="h-4 w-4" />
+        </button>
       </div>
 
-      {/* Product Info */}
-      <div className="mt-3 space-y-1">
-        <h3 className="text-sm font-medium leading-tight line-clamp-2 transition-colors group-hover:underline underline-offset-2">
+      {/* Product Info - Xclusive-style minimal */}
+      <div className="mt-3 space-y-1.5">
+        <h3 className="text-sm font-medium leading-tight line-clamp-1 transition-colors">
           {product.name}
         </h3>
         <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold">
-            {formatCurrency(product.price, currency)}
-          </span>
           {isOnSale && (
-            <span className="text-sm text-neutral-400 line-through">
+            <span className="text-xs text-neutral-400 line-through">
               {formatCurrency(product.compare_at_price!, currency)}
             </span>
           )}
+          <span className={cn("text-sm font-semibold", isOnSale && "text-red-600")}>
+            {formatCurrency(product.price, currency)}
+          </span>
         </div>
       </div>
     </div>
