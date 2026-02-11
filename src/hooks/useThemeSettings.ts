@@ -17,6 +17,7 @@ export interface ThemeSettings {
   custom_css: string | null;
   primary_color: string | null;
   accent_color: string | null;
+  section_order: string[] | null;
 }
 
 export interface Banner {

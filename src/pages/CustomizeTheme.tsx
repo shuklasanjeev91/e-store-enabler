@@ -22,7 +22,26 @@ import {
   Megaphone,
   PanelTop,
   Mail,
+  GripVertical,
+  Layers,
 } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -69,6 +88,7 @@ interface ThemeSettings {
   show_sticky_buy_button: boolean;
   primary_color: string | null;
   accent_color: string | null;
+  section_order: string[] | null;
 }
 
 interface Banner {
@@ -96,6 +116,18 @@ const FONT_OPTIONS = [
   { value: "Cormorant Garamond", label: "Cormorant Garamond" },
 ];
 
+const DEFAULT_SECTION_ORDER = ['hero', 'collections', 'featured_product', 'brand_story', 'products', 'testimonials', 'newsletter'];
+
+const REORDERABLE_SECTIONS = [
+  { id: 'hero', label: 'Hero Section', description: 'Main heading, background image, and CTA' },
+  { id: 'collections', label: 'Shop by Category', description: 'Visual category collection blocks' },
+  { id: 'featured_product', label: 'Featured Product', description: 'Highlight your best product' },
+  { id: 'brand_story', label: 'Brand Story', description: 'Share your brand narrative' },
+  { id: 'products', label: 'All Products', description: 'Product grid with filters' },
+  { id: 'testimonials', label: 'Testimonials', description: 'Customer reviews and ratings' },
+  { id: 'newsletter', label: 'Newsletter', description: 'Email subscription section' },
+];
+
 const defaultSettings: Omit<ThemeSettings, "store_id"> = {
   background_mode: "light",
   show_store_name: true,
@@ -110,6 +142,7 @@ const defaultSettings: Omit<ThemeSettings, "store_id"> = {
   show_sticky_buy_button: false,
   primary_color: null,
   accent_color: null,
+  section_order: DEFAULT_SECTION_ORDER,
 };
 
 const COLOR_PRESETS = [
@@ -234,6 +267,7 @@ export default function CustomizeTheme() {
             show_sticky_buy_button: settings.show_sticky_buy_button,
             primary_color: settings.primary_color,
             accent_color: settings.accent_color,
+            section_order: settings.section_order,
           })
           .eq("id", settings.id);
 
@@ -256,6 +290,7 @@ export default function CustomizeTheme() {
             show_sticky_buy_button: settings.show_sticky_buy_button,
             primary_color: settings.primary_color,
             accent_color: settings.accent_color,
+            section_order: settings.section_order,
           })
           .select()
           .single();
@@ -467,7 +502,7 @@ export default function CustomizeTheme() {
     { id: "fonts", label: "Typography", icon: Type, group: "Design" },
     { id: "header", label: "Header & Branding", icon: PanelTop, group: "Layout" },
     { id: "banners", label: "Banners", icon: ImagePlus, group: "Layout" },
-    { id: "sections", label: "Section Visibility", icon: ToggleLeft, group: "Layout" },
+    { id: "sections", label: "Sections & Order", icon: Layers, group: "Layout" },
     { id: "hero-content", label: "Hero Section", icon: Layout, group: "Content" },
     { id: "brand-story-content", label: "Brand Story", icon: FileText, group: "Content" },
     { id: "testimonials-content", label: "Testimonials", icon: MessageSquareQuote, group: "Content" },
@@ -1075,41 +1110,62 @@ export default function CustomizeTheme() {
                   </div>
                 )}
 
-                {/* Sections */}
+                {/* Sections & Order */}
                 {activeSection === "sections" && (
-                  <div className="space-y-4">
-                    <SettingToggle
-                      title="Featured product"
-                      description="Make your best product standout with this section."
-                      checked={settings.show_featured_product}
-                      onCheckedChange={(checked) =>
-                        updateSettings({ show_featured_product: checked })
-                      }
-                    />
-                    <SettingToggle
-                      title="Image with overlay"
-                      description="Upload photos of your business, products, or offerings for customers to see."
-                      checked={settings.show_image_overlay}
-                      onCheckedChange={(checked) =>
-                        updateSettings({ show_image_overlay: checked })
-                      }
-                    />
-                    <SettingToggle
-                      title="Customer testimonials"
-                      description="Build trust among new buyers with testimonials from your existing customers."
-                      checked={settings.show_testimonials}
-                      onCheckedChange={(checked) =>
-                        updateSettings({ show_testimonials: checked })
-                      }
-                    />
-                    <SettingToggle
-                      title="Brand story"
-                      description="Use this section to share information about your brand, products, categories, etc with your customers."
-                      checked={settings.show_brand_story}
-                      onCheckedChange={(checked) =>
-                        updateSettings({ show_brand_story: checked })
-                      }
-                    />
+                  <div className="space-y-6">
+                    <div>
+                      <h2 className="text-lg font-semibold">Sections & Order</h2>
+                      <p className="text-sm text-muted-foreground">
+                        Toggle sections on/off and drag to reorder how they appear on your storefront.
+                      </p>
+                    </div>
+
+                    {/* Visibility Toggles */}
+                    <div className="space-y-3">
+                      <Label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Visibility</Label>
+                      <SettingToggle
+                        title="Featured product"
+                        description="Make your best product standout with this section."
+                        checked={settings.show_featured_product}
+                        onCheckedChange={(checked) =>
+                          updateSettings({ show_featured_product: checked })
+                        }
+                      />
+                      <SettingToggle
+                        title="Customer testimonials"
+                        description="Build trust among new buyers with testimonials from your existing customers."
+                        checked={settings.show_testimonials}
+                        onCheckedChange={(checked) =>
+                          updateSettings({ show_testimonials: checked })
+                        }
+                      />
+                      <SettingToggle
+                        title="Brand story"
+                        description="Share your brand narrative with customers."
+                        checked={settings.show_brand_story}
+                        onCheckedChange={(checked) =>
+                          updateSettings({ show_brand_story: checked })
+                        }
+                      />
+                    </div>
+
+                    {/* Drag & Drop Section Order */}
+                    <div className="space-y-3">
+                      <Label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Section Order</Label>
+                      <p className="text-xs text-muted-foreground">Drag and drop to rearrange sections on your storefront</p>
+                      <SectionOrderList
+                        sectionOrder={settings.section_order || DEFAULT_SECTION_ORDER}
+                        onReorder={(newOrder) => updateSettings({ section_order: newOrder })}
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => updateSettings({ section_order: DEFAULT_SECTION_ORDER })}
+                        className="w-full"
+                      >
+                        Reset to default order
+                      </Button>
+                    </div>
                   </div>
                 )}
 
@@ -1540,5 +1596,85 @@ function SettingToggle({
       </div>
       <Switch checked={checked} onCheckedChange={onCheckedChange} />
     </div>
+  );
+}
+
+// Sortable section item for drag-and-drop
+function SortableSectionItem({ id }: { id: string }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  const sectionInfo = REORDERABLE_SECTIONS.find(s => s.id === id);
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        "flex items-center gap-3 rounded-lg border bg-background px-3 py-3 transition-shadow",
+        isDragging && "shadow-lg ring-2 ring-primary/20 z-50"
+      )}
+    >
+      <button
+        {...attributes}
+        {...listeners}
+        className="cursor-grab touch-none text-muted-foreground hover:text-foreground active:cursor-grabbing"
+      >
+        <GripVertical className="h-4 w-4" />
+      </button>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium">{sectionInfo?.label || id}</p>
+        <p className="text-xs text-muted-foreground truncate">{sectionInfo?.description}</p>
+      </div>
+      <span className="text-xs text-muted-foreground tabular-nums shrink-0">
+        {(REORDERABLE_SECTIONS.findIndex(s => s.id === id) + 1) || ""}
+      </span>
+    </div>
+  );
+}
+
+// Section order list with drag-and-drop
+function SectionOrderList({
+  sectionOrder,
+  onReorder,
+}: {
+  sectionOrder: string[];
+  onReorder: (newOrder: string[]) => void;
+}) {
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      const oldIndex = sectionOrder.indexOf(active.id as string);
+      const newIndex = sectionOrder.indexOf(over.id as string);
+      onReorder(arrayMove(sectionOrder, oldIndex, newIndex));
+    }
+  };
+
+  return (
+    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <SortableContext items={sectionOrder} strategy={verticalListSortingStrategy}>
+        <div className="space-y-2">
+          {sectionOrder.map((id) => (
+            <SortableSectionItem key={id} id={id} />
+          ))}
+        </div>
+      </SortableContext>
+    </DndContext>
   );
 }
