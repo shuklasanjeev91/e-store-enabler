@@ -294,6 +294,32 @@ export default function CustomizeTheme() {
     }
   };
 
+  const handleFaviconUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !store) return;
+
+    try {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${store.id}/favicon.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("page-images")
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from("page-images")
+        .getPublicUrl(fileName);
+
+      updateSettings({ favicon_url: urlData.publicUrl });
+      toast({ title: "Favicon uploaded! Click Update to save." });
+    } catch (error) {
+      console.error("Error uploading favicon:", error);
+      toast({ title: "Upload failed", variant: "destructive" });
+    }
+  };
+
   const handleBannerUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
     deviceType: "mobile" | "desktop"
@@ -737,7 +763,7 @@ export default function CustomizeTheme() {
                       <div>
                         <h3 className="text-lg font-semibold">Favicon</h3>
                         <p className="text-sm text-muted-foreground">
-                          Favicon should be a square and at least 48px*48px.
+                          Favicon should be a square and at least 48px × 48px. It appears in browser tabs and bookmarks.
                         </p>
                       </div>
                       <div className="flex items-center gap-4 rounded-lg border p-4">
@@ -748,6 +774,11 @@ export default function CustomizeTheme() {
                               <span className="h-3 w-3 rounded-full bg-yellow-500" />
                               <span className="h-3 w-3 rounded-full bg-green-500" />
                             </span>
+                            {settings.favicon_url ? (
+                              <img src={settings.favicon_url} alt="Favicon" className="h-4 w-4 object-contain" />
+                            ) : store.logo_url ? (
+                              <img src={store.logo_url} alt="Favicon" className="h-4 w-4 object-contain" />
+                            ) : null}
                             <span className="text-muted-foreground">
                               {store.name} - Online Store
                             </span>
@@ -755,11 +786,48 @@ export default function CustomizeTheme() {
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg border bg-primary text-primary-foreground text-lg font-bold">
-                          {store.name.charAt(0)}
+                        <div className="flex h-12 w-12 items-center justify-center rounded-lg border-2 border-dashed bg-muted overflow-hidden">
+                          {settings.favicon_url ? (
+                            <img src={settings.favicon_url} alt="Favicon" className="h-full w-full object-contain" />
+                          ) : store.logo_url ? (
+                            <img src={store.logo_url} alt="Favicon fallback" className="h-full w-full object-contain" />
+                          ) : (
+                            <span className="text-lg font-bold text-primary">{store.name.charAt(0)}</span>
+                          )}
                         </div>
-                        <Button variant="outline">Change image</Button>
+                        <div className="flex items-center gap-2">
+                          <label htmlFor="favicon-upload">
+                            <Button variant="outline" asChild>
+                              <span>
+                                <Upload className="mr-2 h-4 w-4" />
+                                {settings.favicon_url ? "Change favicon" : "Upload favicon"}
+                              </span>
+                            </Button>
+                          </label>
+                          <input
+                            id="favicon-upload"
+                            type="file"
+                            accept="image/png,image/x-icon,image/svg+xml,image/jpeg"
+                            className="hidden"
+                            onChange={handleFaviconUpload}
+                          />
+                          {settings.favicon_url && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => updateSettings({ favicon_url: null })}
+                            >
+                              <X className="mr-1 h-3 w-3" />
+                              Remove
+                            </Button>
+                          )}
+                        </div>
                       </div>
+                      {!settings.favicon_url && store.logo_url && (
+                        <p className="text-xs text-muted-foreground">
+                          Currently using your store logo as favicon. Upload a custom favicon for best results.
+                        </p>
+                      )}
                     </div>
                   </div>
                 )}
