@@ -12,6 +12,7 @@ import ProductFilters, {
   ProductFiltersSidebar,
 } from "@/components/storefront/ProductFilters";
 import BannerCarousel from "@/components/storefront/BannerCarousel";
+import StorefrontSearch from "@/components/storefront/StorefrontSearch";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useThemeSettings, getBackgroundStyles, getFontFamilyCSS } from "@/hooks/useThemeSettings";
@@ -43,6 +44,7 @@ interface MinimalThemeProps {
 
 export default function MinimalTheme({ store, products }: MinimalThemeProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const {
     setStoreId,
     setCurrency,
@@ -202,7 +204,7 @@ export default function MinimalTheme({ store, products }: MinimalThemeProps) {
             </nav>
           </div>
           <div className="flex items-center gap-2">
-            <button className="p-2 transition-opacity hover:opacity-70" style={{ color: colors.foregroundMuted }}>
+            <button className="p-2 transition-opacity hover:opacity-70" style={{ color: colors.foregroundMuted }} onClick={() => setSearchOpen(true)}>
               <Search className="h-5 w-5" />
             </button>
             <button
@@ -525,6 +527,7 @@ export default function MinimalTheme({ store, products }: MinimalThemeProps) {
       <CartDrawer storeSlug={store.slug} />
       <WishlistDrawer />
       <CustomerAuthModal />
+      <StorefrontSearch products={products} storeSlug={store.slug} isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
     </div>
   );
 }

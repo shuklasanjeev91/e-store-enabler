@@ -8,6 +8,7 @@ import WishlistDrawer from "@/components/storefront/WishlistDrawer";
 import CustomerAuthModal from "@/components/storefront/CustomerAuthModal";
 import ProductFilters, { FilterState, ProductFiltersSidebar } from "@/components/storefront/ProductFilters";
 import BannerCarousel from "@/components/storefront/BannerCarousel";
+import StorefrontSearch from "@/components/storefront/StorefrontSearch";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CategoryThemeConfig } from "./config/themeConfig";
@@ -41,6 +42,7 @@ interface BaseStorefrontThemeProps {
 
 export default function BaseStorefrontTheme({ store, products, config }: BaseStorefrontThemeProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const {
     setStoreId,
     setCurrency,
@@ -246,6 +248,7 @@ export default function BaseStorefrontTheme({ store, products, config }: BaseSto
             <button 
               className={`p-2.5 ${borderRadiusClass} transition-colors`}
               style={{ color: effectiveColors.foregroundMuted }}
+              onClick={() => setSearchOpen(true)}
             >
               <Search className="h-5 w-5" />
             </button>
@@ -628,6 +631,7 @@ export default function BaseStorefrontTheme({ store, products, config }: BaseSto
       <CartDrawer storeSlug={store.slug} />
       <WishlistDrawer />
       <CustomerAuthModal />
+      <StorefrontSearch products={products} storeSlug={store.slug} isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
     </div>
   );
 }

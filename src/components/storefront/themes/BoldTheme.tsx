@@ -8,6 +8,7 @@ import CustomerAuthModal from "@/components/storefront/CustomerAuthModal";
 import ProductFilters, { FilterState, ProductFiltersSidebar } from "@/components/storefront/ProductFilters";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import StorefrontSearch from "@/components/storefront/StorefrontSearch";
 
 interface Product {
   id: string;
@@ -36,6 +37,7 @@ interface BoldThemeProps {
 
 export default function BoldTheme({ store, products }: BoldThemeProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const {
     setStoreId,
     setCurrency,
@@ -100,7 +102,7 @@ export default function BoldTheme({ store, products }: BoldThemeProps) {
             </nav>
           </div>
           <div className="flex items-center gap-4">
-            <button className="p-2 text-white/70 hover:text-white">
+            <button className="p-2 text-white/70 hover:text-white" onClick={() => setSearchOpen(true)}>
               <Search className="h-6 w-6" />
             </button>
             <button className="relative p-2 text-white/70 hover:text-white" onClick={() => setIsWishlistOpen(true)}>
@@ -256,6 +258,7 @@ export default function BoldTheme({ store, products }: BoldThemeProps) {
       <CartDrawer storeSlug={store.slug} />
       <WishlistDrawer />
       <CustomerAuthModal />
+      <StorefrontSearch products={products} storeSlug={store.slug} isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
     </div>
   );
 }
