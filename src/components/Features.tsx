@@ -83,7 +83,7 @@ export const Features = () => {
             <span className="gradient-text">succeed online</span>
           </h2>
           <p className="text-lg text-muted-foreground">
-            From store setup to global scaling, Shopdu provides all the tools you need 
+            From store setup to global scaling, ShopDu provides all the tools you need 
             to build a thriving e-commerce business.
           </p>
         </motion.div>

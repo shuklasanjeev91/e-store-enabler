@@ -57,7 +57,7 @@ export const Hero = () => {
           transition={{ duration: 0.6, delay: 0.2 }}
           className="mb-10 max-w-2xl text-lg text-text-muted-on-dark md:text-xl"
         >
-          Shopdu makes it ridiculously easy for anyone to build, manage, and scale 
+          ShopDu makes it ridiculously easy for anyone to build, manage, and scale 
           their e-commerce business. No coding required. Start selling today.
         </motion.p>
 
