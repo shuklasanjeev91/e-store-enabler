@@ -6,6 +6,8 @@ import CartDrawer from "@/components/storefront/CartDrawer";
 import WishlistDrawer from "@/components/storefront/WishlistDrawer";
 import CustomerAuthModal from "@/components/storefront/CustomerAuthModal";
 import { Badge } from "@/components/ui/badge";
+import BlockRenderer from "@/components/page-builder/BlockRenderer";
+import { isBlockContent } from "@/components/page-builder/types";
 
 interface Store {
   id: string;
@@ -166,12 +168,16 @@ export default function BoldPageLayout({ store, page }: BoldPageLayoutProps) {
           {/* Content */}
           <article className="w-full">
             {page.content ? (
-              <div className="rounded-2xl border border-white/10 bg-slate-900/50 p-6 sm:p-8 lg:p-12">
-                <div
-                  className="prose prose-invert prose-lg lg:prose-xl max-w-none prose-headings:font-black prose-headings:uppercase prose-headings:tracking-tight prose-p:leading-relaxed prose-a:text-yellow-400 prose-a:no-underline hover:prose-a:underline prose-strong:text-yellow-400 prose-blockquote:border-l-yellow-400 prose-code:text-yellow-400 prose-img:rounded-xl prose-img:w-full"
-                  dangerouslySetInnerHTML={{ __html: page.content }}
-                />
-              </div>
+              isBlockContent(page.content) ? (
+                <BlockRenderer content={page.content} />
+              ) : (
+                <div className="rounded-2xl border border-white/10 bg-slate-900/50 p-6 sm:p-8 lg:p-12">
+                  <div
+                    className="prose prose-invert prose-lg lg:prose-xl max-w-none prose-headings:font-black prose-headings:uppercase prose-headings:tracking-tight prose-p:leading-relaxed prose-a:text-yellow-400 prose-a:no-underline hover:prose-a:underline prose-strong:text-yellow-400 prose-blockquote:border-l-yellow-400 prose-code:text-yellow-400 prose-img:rounded-xl prose-img:w-full"
+                    dangerouslySetInnerHTML={{ __html: page.content }}
+                  />
+                </div>
+              )
             ) : (
               <div className="flex min-h-[200px] flex-col items-center justify-center rounded-2xl border-2 border-dashed border-white/20 bg-slate-900/30 p-8 text-center">
                 <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-yellow-400/10 mb-4">

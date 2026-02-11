@@ -6,6 +6,8 @@ import CartDrawer from "@/components/storefront/CartDrawer";
 import WishlistDrawer from "@/components/storefront/WishlistDrawer";
 import CustomerAuthModal from "@/components/storefront/CustomerAuthModal";
 import { Badge } from "@/components/ui/badge";
+import BlockRenderer from "@/components/page-builder/BlockRenderer";
+import { isBlockContent } from "@/components/page-builder/types";
 
 interface Store {
   id: string;
@@ -170,10 +172,14 @@ export default function ElegantPageLayout({ store, page }: ElegantPageLayoutProp
           {/* Content */}
           <article className="w-full">
             {page.content ? (
-              <div
-                className="prose prose-stone prose-lg mx-auto max-w-none lg:prose-xl prose-headings:font-light prose-headings:tracking-wide prose-p:leading-loose prose-a:text-amber-700 prose-a:no-underline prose-a:border-b prose-a:border-amber-700/30 hover:prose-a:border-amber-700 prose-blockquote:border-l-amber-600 prose-blockquote:italic prose-img:rounded-lg prose-img:w-full"
-                dangerouslySetInnerHTML={{ __html: page.content }}
-              />
+              isBlockContent(page.content) ? (
+                <BlockRenderer content={page.content} />
+              ) : (
+                <div
+                  className="prose prose-stone prose-lg mx-auto max-w-none lg:prose-xl prose-headings:font-light prose-headings:tracking-wide prose-p:leading-loose prose-a:text-amber-700 prose-a:no-underline prose-a:border-b prose-a:border-amber-700/30 hover:prose-a:border-amber-700 prose-blockquote:border-l-amber-600 prose-blockquote:italic prose-img:rounded-lg prose-img:w-full"
+                  dangerouslySetInnerHTML={{ __html: page.content }}
+                />
+              )
             ) : (
               <div className="flex min-h-[200px] flex-col items-center justify-center rounded-lg border border-stone-200 bg-stone-100/50 p-8 text-center">
                 <p className="text-lg font-light italic text-stone-500">This page awaits content</p>
