@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
@@ -10,6 +10,13 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { MediaPickerTrigger } from "@/components/MediaPicker";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
@@ -19,6 +26,8 @@ import {
   ChevronDown,
   ChevronUp,
   HelpCircle,
+  FolderTree,
+  ChevronRight,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -29,8 +38,16 @@ interface StoreData {
   slug: string;
 }
 
+interface CategoryOption {
+  id: string;
+  name: string;
+  parent_id: string | null;
+  level: number;
+}
+
 const QUICK_NAV_SECTIONS = [
   { id: "information", label: "Information" },
+  { id: "parent", label: "Parent Category" },
   { id: "banner", label: "Banner" },
   { id: "content", label: "Content" },
   { id: "seo", label: "ShopDu SEO" },
@@ -39,19 +56,25 @@ const QUICK_NAV_SECTIONS = [
 export default function CategoryEditor() {
   const navigate = useNavigate();
   const { categoryId } = useParams();
+  const [searchParams] = useSearchParams();
   const { user, isLoading } = useAuth();
   const { toast } = useToast();
 
   const isEditing = categoryId && categoryId !== "new";
+  const preselectedParentId = searchParams.get("parent");
 
   const [store, setStore] = useState<StoreData | null>(null);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [activeSection, setActiveSection] = useState("information");
 
+  // All categories for parent selector
+  const [allCategories, setAllCategories] = useState<CategoryOption[]>([]);
+
   // Form state
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
+  const [parentId, setParentId] = useState<string | null>(preselectedParentId || null);
   const [imageUrl, setImageUrl] = useState("");
   const [desktopBannerUrl, setDesktopBannerUrl] = useState("");
   const [mobileBannerUrl, setMobileBannerUrl] = useState("");
@@ -66,6 +89,7 @@ export default function CategoryEditor() {
   const [bannerOpen, setBannerOpen] = useState(true);
   const [contentOpen, setContentOpen] = useState(true);
   const [seoOpen, setSeoOpen] = useState(true);
+  const [parentOpen, setParentOpen] = useState(true);
 
   // Section refs for scrolling
   const sectionRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
@@ -108,6 +132,29 @@ export default function CategoryEditor() {
 
       setStore(storeData);
 
+      // Fetch all categories for parent selector
+      const { data: catsData } = await supabase
+        .from("categories")
+        .select("id, name, parent_id, sort_order")
+        .eq("store_id", storeData.id)
+        .order("sort_order", { ascending: true });
+
+      if (catsData) {
+        // Calculate levels
+        const withLevels: CategoryOption[] = catsData.map((c) => {
+          let level = 0;
+          let current = c;
+          while (current.parent_id) {
+            level++;
+            const parent = catsData.find((p) => p.id === current.parent_id);
+            if (!parent) break;
+            current = parent;
+          }
+          return { id: c.id, name: c.name, parent_id: c.parent_id, level };
+        });
+        setAllCategories(withLevels);
+      }
+
       // Fetch category if editing
       if (isEditing) {
         const { data: categoryData, error: categoryError } = await supabase
@@ -125,6 +172,7 @@ export default function CategoryEditor() {
 
         setName(categoryData.name);
         setSlug(categoryData.slug);
+        setParentId(categoryData.parent_id || null);
         setImageUrl(categoryData.image_url || "");
         setDescription(categoryData.description || "");
         setStatus(categoryData.status);
@@ -156,6 +204,45 @@ export default function CategoryEditor() {
     }
   };
 
+  // Get valid parent options (only L1 and L2 categories, excluding self and descendants)
+  const getParentOptions = (): CategoryOption[] => {
+    // Can only parent under L1 (level 0) or L2 (level 1) = max depth 2
+    const validParents = allCategories.filter((c) => {
+      if (c.level >= 2) return false; // Can't nest under L3
+      if (isEditing && c.id === categoryId) return false; // Can't be own parent
+      // Can't be a descendant of self
+      if (isEditing) {
+        let current: CategoryOption | undefined = c;
+        while (current?.parent_id) {
+          if (current.parent_id === categoryId) return false;
+          current = allCategories.find((p) => p.id === current!.parent_id);
+        }
+      }
+      return true;
+    });
+    return validParents;
+  };
+
+  // Build breadcrumb path for a category
+  const getCategoryPath = (catId: string): string => {
+    const parts: string[] = [];
+    let current = allCategories.find((c) => c.id === catId);
+    while (current) {
+      parts.unshift(current.name);
+      current = current.parent_id
+        ? allCategories.find((c) => c.id === current!.parent_id)
+        : undefined;
+    }
+    return parts.join(" → ");
+  };
+
+  // Determine the level of this category
+  const getCurrentLevel = (): number => {
+    if (!parentId) return 0;
+    const parent = allCategories.find((c) => c.id === parentId);
+    return parent ? parent.level + 1 : 0;
+  };
+
   const handleSave = async () => {
     if (!store) return;
     if (!name.trim()) {
@@ -174,6 +261,7 @@ export default function CategoryEditor() {
         store_id: store.id,
         name: name.trim(),
         slug: slug.trim(),
+        parent_id: parentId || null,
         image_url: imageUrl || null,
         description: description.trim() || null,
         status,
@@ -219,6 +307,26 @@ export default function CategoryEditor() {
 
   const currentBannerUrl = bannerDevice === "desktop" ? desktopBannerUrl : mobileBannerUrl;
   const setCurrentBannerUrl = bannerDevice === "desktop" ? setDesktopBannerUrl : setMobileBannerUrl;
+  const parentOptions = getParentOptions();
+  const currentLevel = getCurrentLevel();
+
+  const getLevelLabel = (level: number) => {
+    switch (level) {
+      case 0: return "Level 1 — Main Category";
+      case 1: return "Level 2 — Subcategory";
+      case 2: return "Level 3 — Item Category";
+      default: return `Level ${level + 1}`;
+    }
+  };
+
+  const getLevelColor = (level: number) => {
+    switch (level) {
+      case 0: return "bg-primary/10 text-primary border-primary/20";
+      case 1: return "bg-blue-500/10 text-blue-600 border-blue-500/20";
+      case 2: return "bg-amber-500/10 text-amber-600 border-amber-500/20";
+      default: return "bg-muted text-muted-foreground border-border";
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -239,6 +347,9 @@ export default function CategoryEditor() {
               <h1 className="text-xl font-semibold">
                 {isEditing ? "Edit category" : "Add new category"}
               </h1>
+              <span className={`rounded-md border px-2.5 py-1 text-xs font-semibold ${getLevelColor(currentLevel)}`}>
+                {getLevelLabel(currentLevel)}
+              </span>
             </div>
             <Button onClick={handleSave} disabled={isSaving}>
               {isSaving ? "Saving..." : isEditing ? "Save changes" : "Add category"}
@@ -334,6 +445,101 @@ export default function CategoryEditor() {
                     </CardContent>
                   </Card>
 
+                  {/* Parent Category */}
+                  <Card ref={(el) => (sectionRefs.current["parent"] = el)}>
+                    <Collapsible open={parentOpen} onOpenChange={setParentOpen}>
+                      <CollapsibleTrigger className="w-full">
+                        <CardHeader className="flex flex-row items-center justify-between pb-4">
+                          <div className="flex items-center gap-2">
+                            <FolderTree className="h-5 w-5 text-muted-foreground" />
+                            <div>
+                              <h2 className="text-lg font-semibold text-left">Parent Category</h2>
+                              <p className="text-sm text-muted-foreground text-left">
+                                Place this category inside another to build your hierarchy.
+                              </p>
+                            </div>
+                          </div>
+                          {parentOpen ? (
+                            <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                          ) : (
+                            <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                          )}
+                        </CardHeader>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <CardContent className="space-y-4 pt-0">
+                          <div className="space-y-2">
+                            <Label>Parent Category</Label>
+                            <Select
+                              value={parentId || "__none__"}
+                              onValueChange={(val) => setParentId(val === "__none__" ? null : val)}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="None (Top-level category)" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="__none__">
+                                  <span className="flex items-center gap-2">
+                                    <span className="text-muted-foreground">—</span>
+                                    None (Top-level L1 category)
+                                  </span>
+                                </SelectItem>
+                                {parentOptions.map((cat) => (
+                                  <SelectItem key={cat.id} value={cat.id}>
+                                    <span className="flex items-center gap-2">
+                                      {cat.level > 0 && (
+                                        <span className="text-muted-foreground">
+                                          {"└".padStart(cat.level * 2, " ")}
+                                        </span>
+                                      )}
+                                      {cat.name}
+                                      <span className="text-xs text-muted-foreground">
+                                        (L{cat.level + 1})
+                                      </span>
+                                    </span>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          {/* Hierarchy preview */}
+                          {parentId && (
+                            <div className="rounded-lg border bg-muted/30 p-4">
+                              <p className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">Hierarchy Preview</p>
+                              <div className="flex items-center gap-1.5 text-sm">
+                                <span className="rounded bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+                                  {(() => {
+                                    // Build full path
+                                    const parts: string[] = [];
+                                    let current = allCategories.find((c) => c.id === parentId);
+                                    while (current) {
+                                      parts.unshift(current.name);
+                                      current = current.parent_id
+                                        ? allCategories.find((c) => c.id === current!.parent_id)
+                                        : undefined;
+                                    }
+                                    return parts.join(" → ");
+                                  })()}
+                                </span>
+                                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+                                <span className={`rounded border px-2 py-0.5 text-xs font-semibold ${getLevelColor(currentLevel)}`}>
+                                  {name || "New Category"}
+                                </span>
+                              </div>
+                            </div>
+                          )}
+
+                          {!parentId && (
+                            <p className="text-xs text-muted-foreground">
+                              This will be a top-level (L1) category visible in the storefront mega menu header.
+                            </p>
+                          )}
+                        </CardContent>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  </Card>
+
                   {/* Banner */}
                   <Card ref={(el) => (sectionRefs.current["banner"] = el)}>
                     <Collapsible open={bannerOpen} onOpenChange={setBannerOpen}>
@@ -354,7 +560,6 @@ export default function CategoryEditor() {
                       </CollapsibleTrigger>
                       <CollapsibleContent>
                         <CardContent className="pt-0 space-y-4">
-                          {/* Device Toggle */}
                           <div className="flex gap-2">
                             <Button
                               type="button"
@@ -374,7 +579,6 @@ export default function CategoryEditor() {
                             </Button>
                           </div>
 
-                          {/* Banner Upload Area */}
                           {currentBannerUrl ? (
                             <div className="relative h-32 w-full overflow-hidden rounded-lg border">
                               <img
@@ -489,11 +693,9 @@ export default function CategoryEditor() {
                             </button>
                           </div>
 
-                          {/* Social Sharing Image Preview */}
                           <div className="space-y-3">
                             <Label>Social sharing image preview</Label>
                             <div className="grid gap-4 sm:grid-cols-2">
-                              {/* Image Upload */}
                               <MediaPickerTrigger
                                 value={ogImageUrl}
                                 onChange={setOgImageUrl}
@@ -501,7 +703,6 @@ export default function CategoryEditor() {
                                 className="aspect-video"
                               />
 
-                              {/* Preview Card */}
                               <div className="rounded-lg border bg-card p-4 space-y-2">
                                 <h4 className="font-semibold text-lg">
                                   {metaTitle || name || "Category Page Title"}
