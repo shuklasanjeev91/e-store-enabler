@@ -25,7 +25,7 @@ export const CTA = () => {
               Ready to start selling?
             </h2>
             <p className="mx-auto mb-8 max-w-2xl text-lg text-primary-foreground/80">
-              Join 50,000+ entrepreneurs who've launched successful stores with Shopdu. 
+              Join 50,000+ entrepreneurs who've launched successful stores with ShopDu. 
               Start your free trial today — no credit card required.
             </p>
             <div className="flex flex-col justify-center gap-4 sm:flex-row">

@@ -98,7 +98,7 @@ export default function Auth() {
         } else {
           toast({
             title: "Account created!",
-            description: "Welcome to Shopdu! Let's build your store.",
+            description: "Welcome to ShopDu! Let's build your store.",
           });
         }
       }
@@ -143,7 +143,7 @@ export default function Auth() {
               </h1>
               <p className="mt-2 text-muted-foreground">
                 {isLogin
-                  ? "Sign in to your Shopdu account"
+                  ? "Sign in to your ShopDu account"
                   : "Start your e-commerce journey today"}
               </p>
             </div>
@@ -256,7 +256,7 @@ export default function Auth() {
             Launch your store in minutes
           </h2>
           <p className="text-lg text-text-muted-on-dark max-w-md">
-            Join 50,000+ entrepreneurs who've built successful e-commerce businesses with Shopdu.
+            Join 50,000+ entrepreneurs who've built successful e-commerce businesses with ShopDu.
           </p>
           
           <div className="mt-12 grid grid-cols-3 gap-8">

@@ -3,7 +3,7 @@ import { Star } from "lucide-react";
 
 const testimonials = [
   {
-    content: "Shopdu transformed my small craft business into a thriving online store. I went from zero to $50k in sales in just 6 months. The AI tools are game-changing!",
+    content: "ShopDu transformed my small craft business into a thriving online store. I went from zero to $50k in sales in just 6 months. The AI tools are game-changing!",
     author: "Sarah Chen",
     role: "Founder, Artisan Crafts Co.",
     rating: 5,
@@ -15,7 +15,7 @@ const testimonials = [
     rating: 5,
   },
   {
-    content: "The analytics and insights have helped me understand my customers better than ever. My conversion rate doubled within the first month of switching to Shopdu.",
+    content: "The analytics and insights have helped me understand my customers better than ever. My conversion rate doubled within the first month of switching to ShopDu.",
     author: "Emily Rodriguez",
     role: "CEO, Natural Beauty Lab",
     rating: 5,
@@ -42,7 +42,7 @@ export const Testimonials = () => {
             <span className="gradient-text">50,000+ sellers</span>
           </h2>
           <p className="text-lg text-text-muted-on-dark">
-            Join thousands of entrepreneurs who've built successful businesses with Shopdu.
+            Join thousands of entrepreneurs who've built successful businesses with ShopDu.
           </p>
         </motion.div>
 

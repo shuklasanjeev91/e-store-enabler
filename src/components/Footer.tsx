@@ -48,7 +48,7 @@ export const Footer = () => {
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
                 <span className="font-display text-lg font-bold text-primary-foreground">S</span>
               </div>
-              <span className="font-display text-xl font-bold text-foreground">Shopdu</span>
+              <span className="font-display text-xl font-bold text-foreground">ShopDu</span>
             </a>
             <p className="mb-6 max-w-xs text-sm text-muted-foreground">
               Empowering entrepreneurs to build, launch, and scale their online stores 
@@ -90,7 +90,7 @@ export const Footer = () => {
 
         {/* Bottom */}
         <div className="mt-16 flex flex-col items-center justify-between gap-4 border-t border-border pt-8 text-sm text-muted-foreground md:flex-row">
-          <p>© {new Date().getFullYear()} Shopdu. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} ShopDu. All rights reserved.</p>
           <p>Made with ❤️ for entrepreneurs everywhere</p>
         </div>
       </div>

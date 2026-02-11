@@ -29,7 +29,7 @@ export const Navbar = () => {
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
               <span className="font-display text-lg font-bold text-primary-foreground">S</span>
             </div>
-            <span className="font-display text-xl font-bold text-text-on-dark">Shopdu</span>
+            <span className="font-display text-xl font-bold text-text-on-dark">ShopDu</span>
           </a>
 
           {/* Desktop Navigation */}

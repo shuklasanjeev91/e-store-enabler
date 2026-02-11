@@ -33,7 +33,7 @@ const QUICK_NAV_SECTIONS = [
   { id: "information", label: "Information" },
   { id: "banner", label: "Banner" },
   { id: "content", label: "Content" },
-  { id: "seo", label: "Shopdu SEO" },
+  { id: "seo", label: "ShopDu SEO" },
 ];
 
 export default function CategoryEditor() {
@@ -440,7 +440,7 @@ export default function CategoryEditor() {
                       <CollapsibleTrigger className="w-full">
                         <CardHeader className="flex flex-row items-center justify-between pb-4">
                           <div>
-                            <h2 className="text-lg font-semibold text-left">Shopdu SEO</h2>
+                            <h2 className="text-lg font-semibold text-left">ShopDu SEO</h2>
                             <p className="text-sm text-muted-foreground text-left">
                               Optimize your product with meta tags to boost its visibility on search engines.
                             </p>

@@ -131,7 +131,7 @@ export const CreateStoreModal = ({ isOpen, onStoreCreated }: CreateStoreModalPro
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary">
                 <span className="font-display text-xl font-bold text-primary-foreground">S</span>
               </div>
-              <span className="font-display text-2xl font-bold">Shopdu</span>
+              <span className="font-display text-2xl font-bold">ShopDu</span>
             </div>
 
             {/* Header */}
