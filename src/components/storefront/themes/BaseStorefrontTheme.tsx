@@ -589,7 +589,7 @@ export default function BaseStorefrontTheme({ store, products, config }: BaseSto
         return renderCollections();
 
       case 'featured_product':
-        if (!showFeaturedProduct || !featuredProduct) return null;
+        if (!featuredProduct) return null;
         return (
           <section key="featured_product" className="py-16" style={{ backgroundColor: effectiveColors.backgroundSecondary }}>
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -612,7 +612,6 @@ export default function BaseStorefrontTheme({ store, products, config }: BaseSto
         );
 
       case 'brand_story':
-        if (!showBrandStory) return null;
         return (
           <section key="brand_story" className="py-16 md:py-24" style={{ backgroundColor: effectiveColors.background }}>
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -714,7 +713,6 @@ export default function BaseStorefrontTheme({ store, products, config }: BaseSto
         );
 
       case 'testimonials':
-        if (!showTestimonials) return null;
         return (
           <section key="testimonials" className="py-16 md:py-24" style={{ backgroundColor: effectiveColors.backgroundSecondary }}>
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -759,6 +757,21 @@ export default function BaseStorefrontTheme({ store, products, config }: BaseSto
             </div>
           </section>
         );
+
+      case 'custom_html':
+      case 'custom_html_2':
+      case 'custom_html_3': {
+        const htmlKey = sectionId as 'custom_html' | 'custom_html_2' | 'custom_html_3';
+        const htmlContent = sectionContent[htmlKey]?.html;
+        if (!htmlContent) return null;
+        return (
+          <section key={sectionId} className="py-12 md:py-16" style={{ backgroundColor: effectiveColors.background }}>
+            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+              <div dangerouslySetInnerHTML={{ __html: htmlContent }} />
+            </div>
+          </section>
+        );
+      }
 
       default:
         return null;

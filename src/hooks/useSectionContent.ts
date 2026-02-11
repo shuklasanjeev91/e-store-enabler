@@ -52,7 +52,12 @@ export interface LabelsContent {
   cta?: string;
 }
 
-export type SectionKey = "hero" | "brand_story" | "testimonials" | "featured_product" | "footer" | "newsletter" | "labels";
+export interface CustomHtmlContent {
+  html?: string;
+  title?: string;
+}
+
+export type SectionKey = "hero" | "brand_story" | "testimonials" | "featured_product" | "footer" | "newsletter" | "labels" | "custom_html" | "custom_html_2" | "custom_html_3";
 
 export type SectionContent = {
   hero: HeroContent;
@@ -62,6 +67,9 @@ export type SectionContent = {
   footer: FooterContent;
   newsletter: NewsletterContent;
   labels: LabelsContent;
+  custom_html: CustomHtmlContent;
+  custom_html_2: CustomHtmlContent;
+  custom_html_3: CustomHtmlContent;
 };
 
 const DEFAULT_CONTENT: SectionContent = {
@@ -103,6 +111,18 @@ const DEFAULT_CONTENT: SectionContent = {
     featured: "",
     collection: "",
     cta: "",
+  },
+  custom_html: {
+    html: "",
+    title: "Custom Section",
+  },
+  custom_html_2: {
+    html: "",
+    title: "Custom Section 2",
+  },
+  custom_html_3: {
+    html: "",
+    title: "Custom Section 3",
   },
 };
 
@@ -170,7 +190,7 @@ export function useSectionContent(storeId: string | null) {
   const saveAllSections = useCallback(async () => {
     if (!storeId) return false;
 
-    const sections: SectionKey[] = ["hero", "brand_story", "testimonials", "featured_product", "footer", "newsletter", "labels"];
+    const sections: SectionKey[] = ["hero", "brand_story", "testimonials", "featured_product", "footer", "newsletter", "labels", "custom_html", "custom_html_2", "custom_html_3"];
     
     const rows = sections.map((key) => ({
       store_id: storeId,
