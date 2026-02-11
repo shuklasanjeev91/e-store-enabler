@@ -36,6 +36,7 @@ interface StoreData {
   status: string;
   logo_url: string | null;
   theme: string;
+  og_image_url: string | null;
 }
 
 interface ThemeSettings {
@@ -317,6 +318,52 @@ export default function CustomizeTheme() {
     } catch (error) {
       console.error("Error uploading favicon:", error);
       toast({ title: "Upload failed", variant: "destructive" });
+    }
+  };
+
+  const handleOgImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !store) return;
+
+    try {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${store.id}/og-image.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("page-images")
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from("page-images")
+        .getPublicUrl(fileName);
+
+      await supabase
+        .from("stores")
+        .update({ og_image_url: urlData.publicUrl })
+        .eq("id", store.id);
+
+      setStore({ ...store, og_image_url: urlData.publicUrl });
+      toast({ title: "Social share image updated!" });
+    } catch (error) {
+      console.error("Error uploading OG image:", error);
+      toast({ title: "Upload failed", variant: "destructive" });
+    }
+  };
+
+  const handleRemoveOgImage = async () => {
+    if (!store) return;
+    try {
+      await supabase
+        .from("stores")
+        .update({ og_image_url: null })
+        .eq("id", store.id);
+
+      setStore({ ...store, og_image_url: null });
+      toast({ title: "Social share image removed" });
+    } catch (error) {
+      console.error("Error removing OG image:", error);
     }
   };
 
@@ -828,6 +875,56 @@ export default function CustomizeTheme() {
                           Currently using your store logo as favicon. Upload a custom favicon for best results.
                         </p>
                       )}
+                    </div>
+
+                    {/* OG Social Share Image */}
+                    <div className="space-y-4">
+                      <div>
+                        <h3 className="text-lg font-semibold">Social share image (OG Image)</h3>
+                        <p className="text-sm text-muted-foreground">
+                          This image appears when your store link is shared on social media (Facebook, Twitter, WhatsApp, etc.). Recommended size: 1200×630px.
+                        </p>
+                      </div>
+                      <div className="flex items-start gap-4">
+                        <div className="flex h-[105px] w-[200px] items-center justify-center rounded-lg border-2 border-dashed bg-muted overflow-hidden shrink-0">
+                          {store.og_image_url ? (
+                            <img src={store.og_image_url} alt="OG Image" className="h-full w-full object-cover" />
+                          ) : (
+                            <div className="flex flex-col items-center gap-1 text-muted-foreground">
+                              <ImageIcon className="h-6 w-6" />
+                              <span className="text-xs">1200 × 630</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <label htmlFor="og-image-upload">
+                            <Button variant="outline" asChild>
+                              <span>
+                                <Upload className="mr-2 h-4 w-4" />
+                                {store.og_image_url ? "Change image" : "Upload image"}
+                              </span>
+                            </Button>
+                          </label>
+                          <input
+                            id="og-image-upload"
+                            type="file"
+                            accept="image/png,image/jpeg,image/webp"
+                            className="hidden"
+                            onChange={handleOgImageUpload}
+                          />
+                          {store.og_image_url && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="w-fit"
+                              onClick={handleRemoveOgImage}
+                            >
+                              <X className="mr-1 h-3 w-3" />
+                              Remove
+                            </Button>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}

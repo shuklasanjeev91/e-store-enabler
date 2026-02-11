@@ -18,6 +18,7 @@ interface StoreData {
   slug: string;
   description: string | null;
   logo_url: string | null;
+  og_image_url: string | null;
   currency: string;
   status: string;
   theme: string;
@@ -47,6 +48,7 @@ export default function Storefront() {
     storeDescription: store?.description,
     logoUrl: store?.logo_url,
     faviconUrl: themeSettings?.favicon_url,
+    ogImage: store?.og_image_url,
   });
 
   useEffect(() => {

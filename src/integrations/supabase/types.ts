@@ -968,6 +968,7 @@ export type Database = {
           id: string
           logo_url: string | null
           name: string
+          og_image_url: string | null
           slug: string
           status: string
           theme: string
@@ -981,6 +982,7 @@ export type Database = {
           id?: string
           logo_url?: string | null
           name: string
+          og_image_url?: string | null
           slug: string
           status?: string
           theme?: string
@@ -994,6 +996,7 @@ export type Database = {
           id?: string
           logo_url?: string | null
           name?: string
+          og_image_url?: string | null
           slug?: string
           status?: string
           theme?: string

@@ -1,0 +1,1 @@
+ALTER TABLE public.stores ADD COLUMN og_image_url text DEFAULT NULL;
