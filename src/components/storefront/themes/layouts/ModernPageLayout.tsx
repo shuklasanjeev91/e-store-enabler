@@ -174,7 +174,7 @@ export default function ModernPageLayout({ store, page }: ModernPageLayoutProps)
           <article className="w-full">
             {page.content ? (
               isBlockContent(page.content) ? (
-                <BlockRenderer content={page.content} />
+                <BlockRenderer content={page.content} storeId={store.id} currency={store.currency} />
               ) : (
                 <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-xl shadow-zinc-200/50">
                   <div className="p-6 sm:p-8 lg:p-12">

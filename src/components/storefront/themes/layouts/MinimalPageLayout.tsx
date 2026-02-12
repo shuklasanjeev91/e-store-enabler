@@ -175,7 +175,7 @@ export default function MinimalPageLayout({ store, page }: MinimalPageLayoutProp
           <article className="w-full">
             {page.content ? (
               isBlockContent(page.content) ? (
-                <BlockRenderer content={page.content} />
+                <BlockRenderer content={page.content} storeId={store.id} currency={store.currency} />
               ) : (
                 <div
                   className="prose prose-gray prose-lg max-w-none prose-headings:font-light prose-headings:tracking-tight prose-p:leading-relaxed prose-a:text-gray-900 prose-a:underline prose-a:underline-offset-4 prose-img:rounded-xl prose-img:w-full"

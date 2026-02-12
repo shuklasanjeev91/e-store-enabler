@@ -173,7 +173,7 @@ export default function ElegantPageLayout({ store, page }: ElegantPageLayoutProp
           <article className="w-full">
             {page.content ? (
               isBlockContent(page.content) ? (
-                <BlockRenderer content={page.content} />
+                <BlockRenderer content={page.content} storeId={store.id} currency={store.currency} />
               ) : (
                 <div
                   className="prose prose-stone prose-lg mx-auto max-w-none lg:prose-xl prose-headings:font-light prose-headings:tracking-wide prose-p:leading-loose prose-a:text-amber-700 prose-a:no-underline prose-a:border-b prose-a:border-amber-700/30 hover:prose-a:border-amber-700 prose-blockquote:border-l-amber-600 prose-blockquote:italic prose-img:rounded-lg prose-img:w-full"
