@@ -29,6 +29,11 @@ import {
   ChevronUp,
   Upload,
   Settings2,
+  Video,
+  ShoppingBag,
+  Timer,
+  HelpCircle,
+  Palette,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,6 +51,11 @@ import {
   type ButtonBlock,
   type ColumnsBlock,
   type SpacerBlock,
+  type VideoBlock,
+  type ProductGridBlock,
+  type CountdownBlock,
+  type AccordionBlock,
+  type BlockStyling,
   createBlock,
   parseBlocks,
 } from "./types";
@@ -62,6 +72,10 @@ const BLOCK_TYPES: { type: BlockType; label: string; icon: React.ReactNode; desc
   { type: "button", label: "Button", icon: <MousePointerClick className="h-5 w-5" />, description: "Call-to-action button" },
   { type: "columns", label: "Columns", icon: <Columns className="h-5 w-5" />, description: "Multi-column layout" },
   { type: "spacer", label: "Spacer", icon: <Minus className="h-5 w-5" />, description: "Vertical spacing" },
+  { type: "video", label: "Video", icon: <Video className="h-5 w-5" />, description: "YouTube/Vimeo embed" },
+  { type: "product_grid", label: "Products", icon: <ShoppingBag className="h-5 w-5" />, description: "Product grid display" },
+  { type: "countdown", label: "Countdown", icon: <Timer className="h-5 w-5" />, description: "Countdown timer" },
+  { type: "accordion", label: "FAQ", icon: <HelpCircle className="h-5 w-5" />, description: "Accordion / FAQ section" },
 ];
 
 export default function BlockEditor({ content, onChange, storeId }: BlockEditorProps) {
@@ -107,7 +121,6 @@ export default function BlockEditor({ content, onChange, storeId }: BlockEditorP
 
   return (
     <div className="space-y-4">
-      {/* Block List */}
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={blocks.map(b => b.id)} strategy={verticalListSortingStrategy}>
           <div className="space-y-2">
@@ -134,27 +147,22 @@ export default function BlockEditor({ content, onChange, storeId }: BlockEditorP
         </div>
       )}
 
-      {/* Add Block */}
       <div className="relative">
-        <Button
-          variant="outline"
-          className="w-full gap-2 border-dashed"
-          onClick={() => setShowAddMenu(!showAddMenu)}
-        >
+        <Button variant="outline" className="w-full gap-2 border-dashed" onClick={() => setShowAddMenu(!showAddMenu)}>
           <Plus className="h-4 w-4" />
           Add Block
         </Button>
 
         {showAddMenu && (
-          <div className="absolute left-0 right-0 top-full z-10 mt-2 grid grid-cols-2 gap-2 rounded-lg border bg-background p-3 shadow-lg sm:grid-cols-3">
+          <div className="absolute left-0 right-0 top-full z-10 mt-2 grid grid-cols-3 gap-2 rounded-lg border bg-background p-3 shadow-lg">
             {BLOCK_TYPES.map((bt) => (
               <button
                 key={bt.type}
                 onClick={() => addBlock(bt.type)}
-                className="flex flex-col items-center gap-2 rounded-lg border border-transparent p-3 text-center transition-all hover:border-primary/30 hover:bg-primary/5"
+                className="flex flex-col items-center gap-1.5 rounded-lg border border-transparent p-2.5 text-center transition-all hover:border-primary/30 hover:bg-primary/5"
               >
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">{bt.icon}</div>
-                <span className="text-xs font-medium">{bt.label}</span>
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted">{bt.icon}</div>
+                <span className="text-[11px] font-medium">{bt.label}</span>
               </button>
             ))}
           </div>
@@ -164,65 +172,33 @@ export default function BlockEditor({ content, onChange, storeId }: BlockEditorP
   );
 }
 
-// Sortable block item
+// ===== Sortable Block Item =====
 function SortableBlockItem({
-  block,
-  isExpanded,
-  onToggle,
-  onRemove,
-  onUpdate,
-  storeId,
+  block, isExpanded, onToggle, onRemove, onUpdate, storeId,
 }: {
-  block: PageBlock;
-  isExpanded: boolean;
-  onToggle: () => void;
-  onRemove: () => void;
-  onUpdate: (updates: Partial<PageBlock>) => void;
-  storeId: string;
+  block: PageBlock; isExpanded: boolean; onToggle: () => void; onRemove: () => void;
+  onUpdate: (updates: Partial<PageBlock>) => void; storeId: string;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: block.id });
-
   const style = { transform: CSS.Transform.toString(transform), transition };
-
   const blockInfo = BLOCK_TYPES.find(bt => bt.type === block.type);
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={cn(
-        "rounded-lg border bg-background transition-shadow",
-        isDragging && "shadow-lg ring-2 ring-primary/20 z-50"
-      )}
-    >
-      {/* Block Header */}
+    <div ref={setNodeRef} style={style} className={cn("rounded-lg border bg-background transition-shadow", isDragging && "shadow-lg ring-2 ring-primary/20 z-50")}>
       <div className="flex items-center gap-2 px-3 py-2.5">
-        <button
-          {...attributes}
-          {...listeners}
-          className="cursor-grab touch-none text-muted-foreground hover:text-foreground active:cursor-grabbing"
-        >
+        <button {...attributes} {...listeners} className="cursor-grab touch-none text-muted-foreground hover:text-foreground active:cursor-grabbing">
           <GripVertical className="h-4 w-4" />
         </button>
-        <div className="flex h-7 w-7 items-center justify-center rounded bg-muted text-muted-foreground">
-          {blockInfo?.icon}
-        </div>
+        <div className="flex h-7 w-7 items-center justify-center rounded bg-muted text-muted-foreground">{blockInfo?.icon}</div>
         <span className="flex-1 text-sm font-medium">{blockInfo?.label || block.type}</span>
-        <button
-          onClick={onToggle}
-          className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-        >
+        <button onClick={onToggle} className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground">
           {isExpanded ? <ChevronUp className="h-4 w-4" /> : <Settings2 className="h-4 w-4" />}
         </button>
-        <button
-          onClick={onRemove}
-          className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-        >
+        <button onClick={onRemove} className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
           <Trash2 className="h-4 w-4" />
         </button>
       </div>
 
-      {/* Block Settings */}
       {isExpanded && (
         <div className="border-t px-4 py-4 space-y-4">
           {block.type === "text" && <TextBlockSettings block={block} onUpdate={onUpdate} />}
@@ -230,25 +206,76 @@ function SortableBlockItem({
           {block.type === "button" && <ButtonBlockSettings block={block} onUpdate={onUpdate} />}
           {block.type === "columns" && <ColumnsBlockSettings block={block} onUpdate={onUpdate} />}
           {block.type === "spacer" && <SpacerBlockSettings block={block} onUpdate={onUpdate} />}
+          {block.type === "video" && <VideoBlockSettings block={block} onUpdate={onUpdate} />}
+          {block.type === "product_grid" && <ProductGridBlockSettings block={block} onUpdate={onUpdate} />}
+          {block.type === "countdown" && <CountdownBlockSettings block={block} onUpdate={onUpdate} />}
+          {block.type === "accordion" && <AccordionBlockSettings block={block} onUpdate={onUpdate} />}
+
+          {/* Per-block styling */}
+          <BlockStylingSettings styling={block.styling} onUpdate={(styling) => onUpdate({ styling } as any)} />
         </div>
       )}
     </div>
   );
 }
 
-// ============ Block Settings Components ============
+// ===== Per-Block Styling =====
+function BlockStylingSettings({ styling, onUpdate }: { styling?: BlockStyling; onUpdate: (s: BlockStyling) => void }) {
+  const current = styling || {};
+  return (
+    <div className="space-y-3 border-t pt-3 mt-3">
+      <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+        <Palette className="h-3.5 w-3.5" /> Block Styling
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label className="text-xs">Background Color</Label>
+          <div className="flex items-center gap-2 mt-1">
+            <input
+              type="color"
+              value={current.backgroundColor || "#ffffff"}
+              onChange={(e) => onUpdate({ ...current, backgroundColor: e.target.value })}
+              className="h-8 w-10 cursor-pointer rounded border p-0.5"
+            />
+            <Input
+              value={current.backgroundColor || ""}
+              onChange={(e) => onUpdate({ ...current, backgroundColor: e.target.value })}
+              placeholder="none"
+              className="h-8 text-xs flex-1"
+            />
+            {current.backgroundColor && (
+              <Button variant="ghost" size="sm" className="h-8 px-2 text-xs" onClick={() => onUpdate({ ...current, backgroundColor: undefined })}>
+                Clear
+              </Button>
+            )}
+          </div>
+        </div>
+        <div>
+          <Label className="text-xs">Padding</Label>
+          <Select value={current.padding || "none"} onValueChange={(v) => onUpdate({ ...current, padding: v as any })}>
+            <SelectTrigger className="h-8 text-xs mt-1"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">None</SelectItem>
+              <SelectItem value="sm">Small</SelectItem>
+              <SelectItem value="md">Medium</SelectItem>
+              <SelectItem value="lg">Large</SelectItem>
+              <SelectItem value="xl">Extra Large</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ===== Existing Block Settings =====
 
 function TextBlockSettings({ block, onUpdate }: { block: TextBlock; onUpdate: (u: Partial<TextBlock>) => void }) {
   return (
     <div className="space-y-3">
       <div>
         <Label>Content (HTML)</Label>
-        <Textarea
-          value={block.content}
-          onChange={(e) => onUpdate({ content: e.target.value })}
-          className="min-h-[120px] font-mono text-xs"
-          placeholder="<h2>Your heading</h2><p>Your paragraph text...</p>"
-        />
+        <Textarea value={block.content} onChange={(e) => onUpdate({ content: e.target.value })} className="min-h-[120px] font-mono text-xs" placeholder="<h2>Your heading</h2><p>Your paragraph text...</p>" />
       </div>
       <div className="grid grid-cols-3 gap-3">
         <div>
@@ -295,7 +322,6 @@ function TextBlockSettings({ block, onUpdate }: { block: TextBlock; onUpdate: (u
 
 function ImageBlockSettings({ block, onUpdate, storeId }: { block: ImageBlock; onUpdate: (u: Partial<ImageBlock>) => void; storeId: string }) {
   const [uploading, setUploading] = useState(false);
-
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -433,12 +459,9 @@ function ColumnsBlockSettings({ block, onUpdate }: { block: ColumnsBlock; onUpda
     newItems[index] = { ...newItems[index], ...updates };
     onUpdate({ items: newItems });
   };
-
   const setColumnCount = (count: number) => {
     const currentItems = [...block.items];
-    while (currentItems.length < count) {
-      currentItems.push({ content: `Column ${currentItems.length + 1}`, heading: `Heading ${currentItems.length + 1}` });
-    }
+    while (currentItems.length < count) currentItems.push({ content: `Column ${currentItems.length + 1}`, heading: `Heading ${currentItems.length + 1}` });
     onUpdate({ columns: count, items: currentItems.slice(0, count) });
   };
 
@@ -468,28 +491,12 @@ function ColumnsBlockSettings({ block, onUpdate }: { block: ColumnsBlock; onUpda
           </Select>
         </div>
       </div>
-
       {block.items.slice(0, block.columns).map((item, i) => (
         <div key={i} className="space-y-2 rounded-md border p-3">
           <Label className="text-xs font-semibold text-muted-foreground">Column {i + 1}</Label>
-          <Input
-            value={item.heading || ""}
-            onChange={(e) => updateItem(i, { heading: e.target.value })}
-            placeholder="Heading"
-            className="h-8 text-xs"
-          />
-          <Textarea
-            value={item.content}
-            onChange={(e) => updateItem(i, { content: e.target.value })}
-            placeholder="Content text..."
-            className="min-h-[60px] text-xs"
-          />
-          <Input
-            value={item.imageUrl || ""}
-            onChange={(e) => updateItem(i, { imageUrl: e.target.value })}
-            placeholder="Image URL (optional)"
-            className="h-8 text-xs"
-          />
+          <Input value={item.heading || ""} onChange={(e) => updateItem(i, { heading: e.target.value })} placeholder="Heading" className="h-8 text-xs" />
+          <Textarea value={item.content} onChange={(e) => updateItem(i, { content: e.target.value })} placeholder="Content text..." className="min-h-[60px] text-xs" />
+          <Input value={item.imageUrl || ""} onChange={(e) => updateItem(i, { imageUrl: e.target.value })} placeholder="Image URL (optional)" className="h-8 text-xs" />
         </div>
       ))}
     </div>
@@ -509,6 +516,127 @@ function SpacerBlockSettings({ block, onUpdate }: { block: SpacerBlock; onUpdate
           <SelectItem value="xl">Extra Large (128px)</SelectItem>
         </SelectContent>
       </Select>
+    </div>
+  );
+}
+
+// ===== New Block Settings =====
+
+function VideoBlockSettings({ block, onUpdate }: { block: VideoBlock; onUpdate: (u: Partial<VideoBlock>) => void }) {
+  return (
+    <div className="space-y-3">
+      <div>
+        <Label className="text-xs">Video URL (YouTube or Vimeo)</Label>
+        <Input value={block.url} onChange={(e) => onUpdate({ url: e.target.value })} placeholder="https://www.youtube.com/watch?v=..." className="h-8 text-xs" />
+      </div>
+      <div>
+        <Label className="text-xs">Aspect Ratio</Label>
+        <Select value={block.aspectRatio || "16:9"} onValueChange={(v) => onUpdate({ aspectRatio: v as any })}>
+          <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="16:9">16:9 (Widescreen)</SelectItem>
+            <SelectItem value="4:3">4:3 (Classic)</SelectItem>
+            <SelectItem value="1:1">1:1 (Square)</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
+  );
+}
+
+function ProductGridBlockSettings({ block, onUpdate }: { block: ProductGridBlock; onUpdate: (u: Partial<ProductGridBlock>) => void }) {
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label className="text-xs">Columns</Label>
+          <Select value={String(block.columns || 3)} onValueChange={(v) => onUpdate({ columns: Number(v) as any })}>
+            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="2">2 Columns</SelectItem>
+              <SelectItem value="3">3 Columns</SelectItem>
+              <SelectItem value="4">4 Columns</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-xs">Max products</Label>
+          <Select value={String(block.limit || 6)} onValueChange={(v) => onUpdate({ limit: Number(v) })}>
+            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="3">3</SelectItem>
+              <SelectItem value="6">6</SelectItem>
+              <SelectItem value="9">9</SelectItem>
+              <SelectItem value="12">12</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      <div>
+        <Label className="text-xs">Category ID (optional, leave empty for all)</Label>
+        <Input value={block.categoryId || ""} onChange={(e) => onUpdate({ categoryId: e.target.value || undefined })} placeholder="category-uuid" className="h-8 text-xs" />
+      </div>
+    </div>
+  );
+}
+
+function CountdownBlockSettings({ block, onUpdate }: { block: CountdownBlock; onUpdate: (u: Partial<CountdownBlock>) => void }) {
+  return (
+    <div className="space-y-3">
+      <div>
+        <Label className="text-xs">Label</Label>
+        <Input value={block.label || ""} onChange={(e) => onUpdate({ label: e.target.value })} placeholder="Sale ends in" className="h-8 text-xs" />
+      </div>
+      <div>
+        <Label className="text-xs">Target Date & Time</Label>
+        <Input type="datetime-local" value={block.targetDate} onChange={(e) => onUpdate({ targetDate: e.target.value })} className="h-8 text-xs" />
+      </div>
+      <div>
+        <Label className="text-xs">Alignment</Label>
+        <Select value={block.alignment || "center"} onValueChange={(v) => onUpdate({ alignment: v as any })}>
+          <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="left">Left</SelectItem>
+            <SelectItem value="center">Center</SelectItem>
+            <SelectItem value="right">Right</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
+  );
+}
+
+function AccordionBlockSettings({ block, onUpdate }: { block: AccordionBlock; onUpdate: (u: Partial<AccordionBlock>) => void }) {
+  const updateItem = (index: number, updates: Partial<AccordionBlock["items"][0]>) => {
+    const newItems = [...block.items];
+    newItems[index] = { ...newItems[index], ...updates };
+    onUpdate({ items: newItems });
+  };
+  const addItem = () => {
+    onUpdate({ items: [...block.items, { question: `Question ${block.items.length + 1}?`, answer: "Answer here..." }] });
+  };
+  const removeItem = (index: number) => {
+    if (block.items.length <= 1) return;
+    onUpdate({ items: block.items.filter((_, i) => i !== index) });
+  };
+
+  return (
+    <div className="space-y-3">
+      {block.items.map((item, i) => (
+        <div key={i} className="space-y-2 rounded-md border p-3">
+          <div className="flex items-center justify-between">
+            <Label className="text-xs font-semibold text-muted-foreground">Item {i + 1}</Label>
+            {block.items.length > 1 && (
+              <button onClick={() => removeItem(i)} className="text-xs text-destructive hover:underline">Remove</button>
+            )}
+          </div>
+          <Input value={item.question} onChange={(e) => updateItem(i, { question: e.target.value })} placeholder="Question" className="h-8 text-xs" />
+          <Textarea value={item.answer} onChange={(e) => updateItem(i, { answer: e.target.value })} placeholder="Answer..." className="min-h-[60px] text-xs" />
+        </div>
+      ))}
+      <Button variant="outline" size="sm" onClick={addItem} className="w-full gap-1 text-xs">
+        <Plus className="h-3 w-3" /> Add FAQ Item
+      </Button>
     </div>
   );
 }

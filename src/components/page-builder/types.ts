@@ -1,8 +1,15 @@
-export type BlockType = "text" | "image" | "button" | "columns" | "spacer";
+export type BlockType = "text" | "image" | "button" | "columns" | "spacer" | "video" | "product_grid" | "countdown" | "accordion";
+
+// Per-block styling shared by all blocks
+export interface BlockStyling {
+  backgroundColor?: string;
+  padding?: "none" | "sm" | "md" | "lg" | "xl";
+}
 
 export interface BaseBlock {
   id: string;
   type: BlockType;
+  styling?: BlockStyling;
 }
 
 export interface TextBlock extends BaseBlock {
@@ -46,7 +53,35 @@ export interface SpacerBlock extends BaseBlock {
   height: "sm" | "md" | "lg" | "xl";
 }
 
-export type PageBlock = TextBlock | ImageBlock | ButtonBlock | ColumnsBlock | SpacerBlock;
+export interface VideoBlock extends BaseBlock {
+  type: "video";
+  url: string;
+  aspectRatio?: "16:9" | "4:3" | "1:1";
+}
+
+export interface ProductGridBlock extends BaseBlock {
+  type: "product_grid";
+  columns?: 2 | 3 | 4;
+  limit?: number;
+  categoryId?: string;
+}
+
+export interface CountdownBlock extends BaseBlock {
+  type: "countdown";
+  targetDate: string;
+  label?: string;
+  alignment?: "left" | "center" | "right";
+}
+
+export interface AccordionBlock extends BaseBlock {
+  type: "accordion";
+  items: Array<{
+    question: string;
+    answer: string;
+  }>;
+}
+
+export type PageBlock = TextBlock | ImageBlock | ButtonBlock | ColumnsBlock | SpacerBlock | VideoBlock | ProductGridBlock | CountdownBlock | AccordionBlock;
 
 export function createBlock(type: BlockType): PageBlock {
   const id = crypto.randomUUID();
@@ -61,6 +96,14 @@ export function createBlock(type: BlockType): PageBlock {
       return { id, type: "columns", columns: 2, gap: "md", items: [{ content: "Column 1", heading: "Heading 1" }, { content: "Column 2", heading: "Heading 2" }] };
     case "spacer":
       return { id, type: "spacer", height: "md" };
+    case "video":
+      return { id, type: "video", url: "", aspectRatio: "16:9" };
+    case "product_grid":
+      return { id, type: "product_grid", columns: 3, limit: 6 };
+    case "countdown":
+      return { id, type: "countdown", targetDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16), label: "Sale ends in", alignment: "center" };
+    case "accordion":
+      return { id, type: "accordion", items: [{ question: "Question 1?", answer: "Answer to question 1." }, { question: "Question 2?", answer: "Answer to question 2." }] };
   }
 }
 

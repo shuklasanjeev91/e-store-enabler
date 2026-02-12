@@ -169,7 +169,7 @@ export default function BoldPageLayout({ store, page }: BoldPageLayoutProps) {
           <article className="w-full">
             {page.content ? (
               isBlockContent(page.content) ? (
-                <BlockRenderer content={page.content} />
+                <BlockRenderer content={page.content} storeId={store.id} currency={store.currency} />
               ) : (
                 <div className="rounded-2xl border border-white/10 bg-slate-900/50 p-6 sm:p-8 lg:p-12">
                   <div
