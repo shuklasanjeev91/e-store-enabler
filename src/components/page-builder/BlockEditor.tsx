@@ -34,6 +34,13 @@ import {
   Timer,
   HelpCircle,
   Palette,
+  Copy,
+  Clipboard,
+  ClipboardPaste,
+  LayoutTemplate,
+  Users,
+  Mail,
+  Layout,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,6 +66,9 @@ import {
   createBlock,
   parseBlocks,
 } from "./types";
+import { BLOCK_TEMPLATES } from "./blockTemplates";
+
+const CLIPBOARD_KEY = "page-builder-clipboard";
 
 interface BlockEditorProps {
   content: string;
@@ -82,6 +92,7 @@ export default function BlockEditor({ content, onChange, storeId }: BlockEditorP
   const [blocks, setBlocks] = useState<PageBlock[]>(() => parseBlocks(content));
   const [expandedBlock, setExpandedBlock] = useState<string | null>(null);
   const [showAddMenu, setShowAddMenu] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -104,6 +115,48 @@ export default function BlockEditor({ content, onChange, storeId }: BlockEditorP
   const removeBlock = (id: string) => {
     updateBlocks(blocks.filter(b => b.id !== id));
     if (expandedBlock === id) setExpandedBlock(null);
+  };
+
+  const duplicateBlock = (id: string) => {
+    const block = blocks.find(b => b.id === id);
+    if (!block) return;
+    const clone = { ...JSON.parse(JSON.stringify(block)), id: crypto.randomUUID() } as PageBlock;
+    const idx = blocks.findIndex(b => b.id === id);
+    const newBlocks = [...blocks];
+    newBlocks.splice(idx + 1, 0, clone);
+    updateBlocks(newBlocks);
+    setExpandedBlock(clone.id);
+    toast({ title: "Block duplicated" });
+  };
+
+  const copyBlock = (id: string) => {
+    const block = blocks.find(b => b.id === id);
+    if (!block) return;
+    localStorage.setItem(CLIPBOARD_KEY, JSON.stringify(block));
+    toast({ title: "Block copied to clipboard" });
+  };
+
+  const pasteBlock = () => {
+    try {
+      const raw = localStorage.getItem(CLIPBOARD_KEY);
+      if (!raw) { toast({ title: "Clipboard is empty", variant: "destructive" }); return; }
+      const block = JSON.parse(raw) as PageBlock;
+      const clone = { ...block, id: crypto.randomUUID() } as PageBlock;
+      updateBlocks([...blocks, clone]);
+      setExpandedBlock(clone.id);
+      toast({ title: "Block pasted" });
+    } catch {
+      toast({ title: "Failed to paste block", variant: "destructive" });
+    }
+  };
+
+  const applyTemplate = (templateId: string) => {
+    const template = BLOCK_TEMPLATES.find(t => t.id === templateId);
+    if (!template) return;
+    const newBlocks = template.blocks();
+    updateBlocks([...blocks, ...newBlocks]);
+    setShowTemplates(false);
+    toast({ title: `"${template.name}" template added` });
   };
 
   const updateBlock = (id: string, updates: Partial<PageBlock>) => {
@@ -131,6 +184,8 @@ export default function BlockEditor({ content, onChange, storeId }: BlockEditorP
                 isExpanded={expandedBlock === block.id}
                 onToggle={() => setExpandedBlock(expandedBlock === block.id ? null : block.id)}
                 onRemove={() => removeBlock(block.id)}
+                onDuplicate={() => duplicateBlock(block.id)}
+                onCopy={() => copyBlock(block.id)}
                 onUpdate={(updates) => updateBlock(block.id, updates)}
                 storeId={storeId}
               />
@@ -143,26 +198,63 @@ export default function BlockEditor({ content, onChange, storeId }: BlockEditorP
         <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed py-12 text-center">
           <Columns className="h-10 w-10 text-muted-foreground/50" />
           <p className="mt-3 text-sm font-medium text-muted-foreground">No blocks yet</p>
-          <p className="mt-1 text-xs text-muted-foreground/70">Click "Add Block" to start building your page</p>
+          <p className="mt-1 text-xs text-muted-foreground/70">Add blocks or use a template to get started</p>
         </div>
       )}
 
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Button variant="outline" className="w-full gap-2 border-dashed" onClick={() => { setShowAddMenu(!showAddMenu); setShowTemplates(false); }}>
+            <Plus className="h-4 w-4" />
+            Add Block
+          </Button>
+
+          {showAddMenu && (
+            <div className="absolute left-0 right-0 top-full z-10 mt-2 grid grid-cols-3 gap-2 rounded-lg border bg-background p-3 shadow-lg">
+              {BLOCK_TYPES.map((bt) => (
+                <button
+                  key={bt.type}
+                  onClick={() => addBlock(bt.type)}
+                  className="flex flex-col items-center gap-1.5 rounded-lg border border-transparent p-2.5 text-center transition-all hover:border-primary/30 hover:bg-primary/5"
+                >
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted">{bt.icon}</div>
+                  <span className="text-[11px] font-medium">{bt.label}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <Button variant="outline" size="icon" className="border-dashed" onClick={pasteBlock} title="Paste copied block">
+          <ClipboardPaste className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {/* Templates */}
       <div className="relative">
-        <Button variant="outline" className="w-full gap-2 border-dashed" onClick={() => setShowAddMenu(!showAddMenu)}>
-          <Plus className="h-4 w-4" />
-          Add Block
+        <Button variant="outline" className="w-full gap-2" onClick={() => { setShowTemplates(!showTemplates); setShowAddMenu(false); }}>
+          <LayoutTemplate className="h-4 w-4" />
+          Use Template
         </Button>
 
-        {showAddMenu && (
-          <div className="absolute left-0 right-0 top-full z-10 mt-2 grid grid-cols-3 gap-2 rounded-lg border bg-background p-3 shadow-lg">
-            {BLOCK_TYPES.map((bt) => (
+        {showTemplates && (
+          <div className="absolute left-0 right-0 top-full z-10 mt-2 space-y-2 rounded-lg border bg-background p-3 shadow-lg">
+            {BLOCK_TEMPLATES.map((t) => (
               <button
-                key={bt.type}
-                onClick={() => addBlock(bt.type)}
-                className="flex flex-col items-center gap-1.5 rounded-lg border border-transparent p-2.5 text-center transition-all hover:border-primary/30 hover:bg-primary/5"
+                key={t.id}
+                onClick={() => applyTemplate(t.id)}
+                className="flex w-full items-center gap-3 rounded-lg border border-transparent p-3 text-left transition-all hover:border-primary/30 hover:bg-primary/5"
               >
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted">{bt.icon}</div>
-                <span className="text-[11px] font-medium">{bt.label}</span>
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                  {t.icon === "users" && <Users className="h-4 w-4" />}
+                  {t.icon === "mail" && <Mail className="h-4 w-4" />}
+                  {t.icon === "help-circle" && <HelpCircle className="h-4 w-4" />}
+                  {t.icon === "layout" && <Layout className="h-4 w-4" />}
+                </div>
+                <div>
+                  <span className="text-sm font-medium">{t.name}</span>
+                  <p className="text-xs text-muted-foreground">{t.description}</p>
+                </div>
               </button>
             ))}
           </div>
@@ -174,9 +266,10 @@ export default function BlockEditor({ content, onChange, storeId }: BlockEditorP
 
 // ===== Sortable Block Item =====
 function SortableBlockItem({
-  block, isExpanded, onToggle, onRemove, onUpdate, storeId,
+  block, isExpanded, onToggle, onRemove, onDuplicate, onCopy, onUpdate, storeId,
 }: {
   block: PageBlock; isExpanded: boolean; onToggle: () => void; onRemove: () => void;
+  onDuplicate: () => void; onCopy: () => void;
   onUpdate: (updates: Partial<PageBlock>) => void; storeId: string;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: block.id });
@@ -191,6 +284,12 @@ function SortableBlockItem({
         </button>
         <div className="flex h-7 w-7 items-center justify-center rounded bg-muted text-muted-foreground">{blockInfo?.icon}</div>
         <span className="flex-1 text-sm font-medium">{blockInfo?.label || block.type}</span>
+        <button onClick={onCopy} className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground" title="Copy block">
+          <Clipboard className="h-4 w-4" />
+        </button>
+        <button onClick={onDuplicate} className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground" title="Duplicate block">
+          <Copy className="h-4 w-4" />
+        </button>
         <button onClick={onToggle} className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground">
           {isExpanded ? <ChevronUp className="h-4 w-4" /> : <Settings2 className="h-4 w-4" />}
         </button>
